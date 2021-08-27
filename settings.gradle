@@ -1,0 +1,3 @@
+include ':MidiDriver-1.16'
+include ':app'
+rootProject.name = "MIDIPiano"

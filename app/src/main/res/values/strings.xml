@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">MIDI Piano</string>
+    <string name="instrument_prompt">Program Change</string>
+    <string-array name="instrument_array">
+        <item>Acoustic Grand Piano</item>
+        <item>Music Box</item>
+        <item>Acoustic Nylon Guitar</item>
+        <item>Violin</item>
+        <item>Trumpet</item>
+        <item>Flute</item>
+    </string-array>
+</resources>
