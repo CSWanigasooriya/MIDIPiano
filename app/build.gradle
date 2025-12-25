@@ -3,37 +3,82 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    namespace = 'com.flaze'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId "com.flaze"
-        minSdkVersion 16
-        targetSdkVersion 30
-        versionCode 2
-        versionName "2.0"
+        applicationId = "com.flaze"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 12
+        versionName = "12"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 16KB page size support for Android 15+ (required by Play Store from Nov 2025)
+        ndk {
+            //noinspection ChromeOsAbiSupport
+            abiFilters.addAll(['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'])
+        }
+    }
+
+    // Handle native libraries that are not 16KB aligned
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled = false
+            proguardFiles(getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro')
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    // Lint configuration - baseline for known issues
+    lint {
+        baseline = file("lint-baseline.xml")
+        // Temporarily ignore 16KB alignment until MidiDriver library is updated
+        disable.add('UncompressedNativeLibs')
     }
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.3.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    testImplementation 'junit:junit:4.+'
-    implementation project(path: ':MidiDriver-1.16')
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'androidx.activity:activity:1.12.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+
+    testImplementation 'junit:junit:4.13.2'
+
+    // MidiDriver - Local AAR
+    // NOTE: This library is not 16KB aligned. Once the maintainer updates it,
+    // switch to: implementation 'com.github.billthefarmer:mididriver:<version>'
+    // Issue tracking: https://github.com/billthefarmer/mididriver/issues
+    implementation files('../MidiDriver-1.29/MidiDriver-1.29.aar')
+
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+
+    // AdMob - banner only (no startup/app-open/interstitial logic).
+    // Latest version: https://developers.google.com/admob/android/rel-notes
+    implementation 'com.google.android.gms:play-services-ads:24.9.0'
+
+    // Consent (Google UMP) - required for Play compliance in EEA/UK.
+    // Latest version: https://developers.google.com/admob/android/privacy/release-notes
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+
+    // Google Play Billing for in-app purchases (premium features)
+    implementation 'com.android.billingclient:billing:8.3.0'
 }

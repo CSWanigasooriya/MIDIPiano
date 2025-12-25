@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues by="lint baseline" client="gradle" format="6">
+    <!--
+        16KB Page Size Alignment Issue
+
+        The MidiDriver library (and its dependencies libc++_shared.so, liboboe.so)
+        are not compiled with 16KB page size alignment required for Android 15+ devices.
+
+        This baseline temporarily allows the build until the library maintainer
+        updates the native libraries with proper alignment.
+
+        Tracking: https://github.com/billthefarmer/mididriver/issues
+
+        To fix permanently:
+        1. Wait for library update with 16KB support
+        2. Or fork and rebuild with NDK r27+ using: -Wl,-z,max-page-size=16384
+    -->
+</issues>
+

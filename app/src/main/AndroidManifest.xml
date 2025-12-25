@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="flaze">
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Advertising ID permission for Google Mobile Ads SDK (AdMob).
+        Usage: Used only for personalized advertising through AdMob banner ads.
+        Consent: User consent is obtained via Google UMP (User Messaging Platform)
+                 before any personalized ads are shown.
+        Opt-out: Users can opt out via device settings or the consent dialog.
+        Pro users: No ads are shown to Pro users, so AD_ID is not used for them.
+    -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:ignore="AdvertisingIdPolicy" />
 
     <application
         android:allowBackup="true"
@@ -11,9 +22,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MIDIPiano"
         tools:ignore="AllowBackup">
+
+        <!-- Attribution tag for AdMob SDK -->
+        <property
+            android:name="android.adservices.AD_SERVICES_CONFIG"
+            android:resource="@xml/ad_services_config" />
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
         <activity
-            android:screenOrientation="landscape"
-            android:name="com.flaze.MainActivity">
+            android:name="com.flaze.MainActivity"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:exported="true"
+            android:supportsPictureInPicture="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

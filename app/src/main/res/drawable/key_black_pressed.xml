@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed state - flatter appearance -->
+    <item
+        android:bottom="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:top="0dp">
+        <shape>
+            <solid android:color="@color/key_black_pressed" />
+            <corners
+                android:bottomLeftRadius="6dp"
+                android:bottomRightRadius="6dp"
+                android:topLeftRadius="3dp"
+                android:topRightRadius="3dp" />
+            <stroke
+                android:width="0.5dp"
+                android:color="@color/key_black_stroke" />
+        </shape>
+    </item>
+</layer-list>
+

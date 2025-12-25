@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Piano key sizing (landscape - optimized for horizontal play) -->
+    <dimen name="white_key_width">56dp</dimen>
+    <dimen name="black_key_width">48dp</dimen>
+    <dimen name="black_key_height">120dp</dimen>
+    <dimen name="black_key_offset">-24dp</dimen>
+
+    <!-- Compact toolbar in landscape -->
+
+    <!-- Ad sizing - thinner in landscape -->
+    <dimen name="ad_min_height">50dp</dimen>
+
+    <!-- Bottom sheet - wider margins in landscape -->
+    <dimen name="sheet_horizontal_padding">32dp</dimen>
+</resources>
+

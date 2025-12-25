@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      AdMob resources.
+
+      Tip:
+      - Keep using test IDs while developing.
+      - Switch RELEASE builds to real IDs only when you're ready.
+
+      Test ad unit IDs:
+      https://developers.google.com/admob/android/test-ads
+    -->
+
+    <!-- Replace with your *AdMob App ID* (format: ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY) before publishing. -->
+    <string name="admob_app_id">ca-app-pub-7050428031963826~7800459932</string>
+
+    <!-- Test banner ad unit ID (safe for development). -->
+    <string name="admob_banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
+
+    <!-- Your real banner ad unit ID (provided). Use in release only. -->
+    <string name="admob_banner_ad_unit_id">ca-app-pub-7050428031963826/6229876088</string>
+</resources>

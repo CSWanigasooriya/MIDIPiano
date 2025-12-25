@@ -1,6 +1,53 @@
 <resources>
     <string name="app_name">MIDI Piano</string>
     <string name="instrument_prompt">Program Change</string>
+
+    <string name="controls">Controls</string>
+    <string name="transpose">Transpose</string>
+
+    <string name="transpose_down">- Oct</string>
+    <string name="transpose_up">+ Oct</string>
+    <string name="sustain">Sustain</string>
+    <string name="sustain_description">Hold notes after releasing keys</string>
+
+    <!-- Octave Display -->
+    <string name="octave_label">Octave</string>
+    <string name="octave_display">C%1$d - C%2$d</string>
+    <string name="current_octave">Oct %1$d</string>
+
+    <!-- Premium Features -->
+    <string name="premium">Premium</string>
+    <string name="premium_badge">PRO</string>
+    <string name="upgrade_to_pro">Upgrade to Pro</string>
+    <string name="pro_features_title">MIDI Piano Pro</string>
+    <string name="pro_features_description">Unlock all premium features</string>
+    <string name="pro_feature_no_ads">✓ Remove all advertisements</string>
+    <string name="pro_feature_instruments">✓ 24 MIDI instruments (vs 6 free)</string>
+    <string name="pro_feature_velocity">✓ Velocity sensitivity control</string>
+    <string name="restore_purchase">Restore Purchase</string>
+    <string name="purchase_success">Thank you! Pro features unlocked.</string>
+    <string name="purchase_restored">Purchase restored successfully!</string>
+    <string name="purchase_error">Purchase failed. Please try again.</string>
+    <string name="purchase_pending">Purchase pending. Please complete payment.</string>
+    <string name="already_pro">You already have Pro!</string>
+    <string name="price_fallback">$4.99</string>
+    <string name="one_time_purchase">One-time purchase</string>
+
+
+    <!-- Velocity -->
+    <string name="velocity">Velocity</string>
+    <string name="velocity_description">Touch response sensitivity</string>
+    <string name="velocity_locked">Unlock with Pro</string>
+
+    <!-- Accessibility -->
+    <string name="cd_piano_key">Piano key %1$s</string>
+    <string name="cd_ad_banner">Advertisement</string>
+    <string name="cd_instrument_selector">Select instrument</string>
+    <string name="cd_octave_indicator">Current octave range</string>
+    <string name="cd_pro_badge">Premium feature</string>
+    <string name="cd_upgrade_button">Upgrade to premium</string>
+
+    <!-- Free instruments (6) -->
     <string-array name="instrument_array">
         <item>Acoustic Grand Piano</item>
         <item>Music Box</item>
@@ -9,4 +56,41 @@
         <item>Trumpet</item>
         <item>Flute</item>
     </string-array>
+
+    <!-- Pro instruments (24 total) - unlocked with Pro -->
+    <string-array name="instrument_array_pro">
+        <item>Acoustic Grand Piano</item>
+        <item>Bright Acoustic Piano</item>
+        <item>Electric Grand Piano</item>
+        <item>Honky-tonk Piano</item>
+        <item>Electric Piano 1</item>
+        <item>Electric Piano 2</item>
+        <item>Harpsichord</item>
+        <item>Clavinet</item>
+        <item>Celesta</item>
+        <item>Glockenspiel</item>
+        <item>Music Box</item>
+        <item>Vibraphone</item>
+        <item>Marimba</item>
+        <item>Xylophone</item>
+        <item>Church Organ</item>
+        <item>Acoustic Nylon Guitar</item>
+        <item>Acoustic Steel Guitar</item>
+        <item>Electric Guitar (jazz)</item>
+        <item>Electric Guitar (clean)</item>
+        <item>Violin</item>
+        <item>Viola</item>
+        <item>Cello</item>
+        <item>Trumpet</item>
+        <item>Flute</item>
+    </string-array>
+
+    <!-- Velocity Control -->
+    <string name="velocity_control">Velocity</string>
+    <string name="velocity_value">%1$d%%</string>
+    <string name="velocity_default">100%</string>
+    <string name="velocity_pro_hint">🔒 Pro feature</string>
+
+    <!-- Orientation Hint -->
+    <string name="landscape_hint">Rotate to landscape for the best experience</string>
 </resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Piano key sizing (tablets / large screens) -->
+    <dimen name="white_key_width">72dp</dimen>
+    <dimen name="black_key_width">52dp</dimen>
+    <dimen name="black_key_height">260dp</dimen>
+    <dimen name="black_key_offset">-26dp</dimen>
+
+    <!-- Generous spacing for tablets -->
+
+    <!-- Ad sizing -->
+    <dimen name="ad_min_height">90dp</dimen>
+
+    <!-- Bottom sheet - larger on tablets -->
+    <dimen name="sheet_horizontal_padding">40dp</dimen>
+    <dimen name="sheet_vertical_padding">24dp</dimen>
+
+    <!-- Larger spacing on tablets -->
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+
+    <!-- Instrument selector wider on tablet -->
+</resources>
+

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Ad Services configuration for Privacy Sandbox APIs.
+    Required for AdMob SDK on Android 13+ (API 33+).
+    See: https://developer.android.com/design-for-safety/privacy-sandbox
+-->
+<ad-services-config>
+    <!-- Topics API for interest-based advertising -->
+    <topics allowAllToAccess="true" />
+
+    <!-- Attribution Reporting API for ad measurement -->
+    <attribution allowAllToAccess="true" />
+
+    <!-- Protected Audience API (Custom Audiences) for remarketing -->
+    <custom-audiences allowAllToAccess="true" />
+</ad-services-config>
+

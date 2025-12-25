@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow layer -->
+    <item
+        android:bottom="0dp"
+        android:left="1dp"
+        android:right="0dp"
+        android:top="1dp">
+        <shape>
+            <solid android:color="#15000000" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <!-- Main key surface -->
+    <item
+        android:bottom="2dp"
+        android:left="0dp"
+        android:right="1dp"
+        android:top="0dp">
+        <shape>
+            <solid android:color="@color/key_white_normal" />
+            <corners
+                android:bottomLeftRadius="8dp"
+                android:bottomRightRadius="8dp"
+                android:topLeftRadius="4dp"
+                android:topRightRadius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/key_white_stroke" />
+        </shape>
+    </item>
+</layer-list>

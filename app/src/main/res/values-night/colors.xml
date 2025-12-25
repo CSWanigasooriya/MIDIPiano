@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Expressive Color Palette - Dark Theme -->
+    <!-- These override the base values/colors.xml when in night mode -->
+
+    <!-- Primary colors (Deep Indigo - Dark) -->
+    <color name="md_theme_primary">#BAC3FF</color>
+    <color name="md_theme_onPrimary">#13218A</color>
+    <color name="md_theme_primaryContainer">#3040A8</color>
+    <color name="md_theme_onPrimaryContainer">#DEE0FF</color>
+
+    <!-- Secondary colors (Warm Violet - Dark) -->
+    <color name="md_theme_secondary">#C5C4DD</color>
+    <color name="md_theme_onSecondary">#2E2F42</color>
+    <color name="md_theme_secondaryContainer">#444559</color>
+    <color name="md_theme_onSecondaryContainer">#E1E0F9</color>
+
+    <!-- Tertiary colors (Soft Teal - Dark) -->
+    <color name="md_theme_tertiary">#E6BAD7</color>
+    <color name="md_theme_onTertiary">#45263C</color>
+    <color name="md_theme_tertiaryContainer">#5E3C53</color>
+    <color name="md_theme_onTertiaryContainer">#FFD7EE</color>
+
+    <!-- Error colors - Dark -->
+    <color name="md_theme_error">#FFB4AB</color>
+    <color name="md_theme_onError">#690005</color>
+    <color name="md_theme_errorContainer">#93000A</color>
+    <color name="md_theme_onErrorContainer">#FFDAD6</color>
+
+    <!-- Background colors - Dark -->
+    <color name="md_theme_background">#131316</color>
+    <color name="md_theme_onBackground">#E4E1E6</color>
+
+    <!-- Surface colors - Dark -->
+    <color name="md_theme_surface">#131316</color>
+    <color name="md_theme_onSurface">#E4E1E6</color>
+    <color name="md_theme_surfaceVariant">#46464F</color>
+    <color name="md_theme_onSurfaceVariant">#C7C5D0</color>
+
+    <!-- Outline colors - Dark -->
+    <color name="md_theme_outline">#918F9A</color>
+    <color name="md_theme_outlineVariant">#46464F</color>
+
+    <!-- Surface container hierarchy - Dark -->
+    <color name="md_theme_surfaceContainerLowest">#0E0E11</color>
+    <color name="md_theme_surfaceContainerLow">#1B1B1F</color>
+    <color name="md_theme_surfaceContainer">#1F1F23</color>
+    <color name="md_theme_surfaceContainerHigh">#2A292D</color>
+    <color name="md_theme_surfaceContainerHighest">#353438</color>
+
+    <!-- Transparent variants for effects -->
+    <color name="md_theme_primary_transparent">#33BAC3FF</color>
+
+    <!-- Piano key colors - Dark Theme optimized -->
+    <color name="key_white_normal">#F0F0F5</color>
+    <color name="key_white_pressed">#C0C0D0</color>
+    <color name="key_white_stroke">#8080A0</color>
+    <color name="key_black_normal">#1A1A22</color>
+    <color name="key_black_pressed">#2E2E3A</color>
+    <color name="key_black_stroke">#3A3A48</color>
+</resources>

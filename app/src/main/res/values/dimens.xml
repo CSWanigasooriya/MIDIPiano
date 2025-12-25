@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Piano key sizing (portrait defaults - phones) -->
+    <dimen name="white_key_width">52dp</dimen>
+    <dimen name="black_key_width">48dp</dimen>
+    <dimen name="black_key_height">180dp</dimen>
+    <dimen name="black_key_offset">-24dp</dimen>
+
+    <!-- Layout margins -->
+
+    <!-- Ad sizing -->
+    <dimen name="ad_min_height">60dp</dimen>
+
+    <!-- Bottom sheet -->
+    <dimen name="sheet_horizontal_padding">24dp</dimen>
+    <dimen name="sheet_vertical_padding">16dp</dimen>
+
+    <!-- Component spacing -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_lg">16dp</dimen>
+    <dimen name="spacing_xl">24dp</dimen>
+
+    <!-- Instrument selector -->
+</resources>
+
