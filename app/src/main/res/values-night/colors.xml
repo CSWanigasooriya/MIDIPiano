@@ -4,10 +4,10 @@
     <!-- These override the base values/colors.xml when in night mode -->
 
     <!-- Primary colors (Deep Indigo - Dark) -->
-    <color name="md_theme_primary">#BAC3FF</color>
-    <color name="md_theme_onPrimary">#13218A</color>
-    <color name="md_theme_primaryContainer">#3040A8</color>
-    <color name="md_theme_onPrimaryContainer">#DEE0FF</color>
+    <color name="md_theme_primary">#64D8C0</color>
+    <color name="md_theme_onPrimary">#00382E</color>
+    <color name="md_theme_primaryContainer">#005143</color>
+    <color name="md_theme_onPrimaryContainer">#A0F2DB</color>
 
     <!-- Secondary colors (Warm Violet - Dark) -->
     <color name="md_theme_secondary">#C5C4DD</color>

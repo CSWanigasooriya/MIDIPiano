@@ -4,10 +4,10 @@
     <!-- Generated with a deep blue/indigo base for a professional piano app -->
 
     <!-- Primary colors (Deep Indigo) -->
-    <color name="md_theme_primary">#4B5AC2</color>
+    <color name="md_theme_primary">#006B5B</color>
     <color name="md_theme_onPrimary">#FFFFFF</color>
-    <color name="md_theme_primaryContainer">#DEE0FF</color>
-    <color name="md_theme_onPrimaryContainer">#00105C</color>
+    <color name="md_theme_primaryContainer">#A0F2DB</color>
+    <color name="md_theme_onPrimaryContainer">#002019</color>
 
     <!-- Secondary colors (Warm Violet) -->
     <color name="md_theme_secondary">#5C5D72</color>
@@ -53,7 +53,7 @@
     <!-- Scrim and special -->
 
     <!-- Transparent variants for effects -->
-    <color name="md_theme_primary_transparent">#334B5AC2</color>
+    <color name="md_theme_primary_transparent">#33006B5B</color>
 
     <!-- Piano key colors - optimized for visibility in both themes -->
     <color name="key_white_normal">#FEFEFF</color>

@@ -187,5 +187,16 @@
         </LinearLayout>
 
 
+        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/labelsSwitch"
+            android:layout_width="match_parent" android:layout_height="48dp" android:text="@string/note_labels" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/tempo" android:textColor="?attr/colorOnSurface" android:layout_marginTop="16dp" />
+        <TextView android:id="@+id/tempoValue" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="?attr/colorPrimary" />
+        <com.google.android.material.slider.Slider android:id="@+id/tempoSlider" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:valueFrom="40" android:valueTo="240" android:value="100" android:stepSize="1" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/privacyButton"
+            style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/privacy_options" android:visibility="gone" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

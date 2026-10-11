@@ -1,0 +1,95 @@
+name: Android build and internal release
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify vendored audio library
+        run: echo 'ed8a8f3744cffc2937ad1ab88323f8fceb40f2cfbff9f0e158390e8060604551  MidiDriver-1.29/MidiDriver-1.29.aar' | sha256sum --check
+      - name: Build, test, and lint
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest :app:bundleRelease --no-daemon --max-workers=2
+      - name: Verify native APK packaging
+        run: "$ANDROID_HOME/build-tools/36.0.0/zipalign -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk"
+      - name: Save builds and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-${{ github.run_number }}
+          retention-days: 14
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/reports/
+
+  release-internal:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.PLAY_AUTO_RELEASE == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: play-internal
+    env:
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+      - name: Prepare signing and version
+        shell: bash
+        run: |
+          for name in ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ANDROID_KEYSTORE_BASE64 PLAY_SERVICE_ACCOUNT_JSON; do
+            if [[ -z "${!name}" ]]; then echo "::error::Missing required secret: $name"; exit 1; fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-key.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload-key.jks" >> "$GITHUB_ENV"
+          echo "PLAY_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+      - name: Build signed bundle
+        run: |
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          chmod +x gradlew
+          ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --no-configuration-cache
+      - name: Upload to Play internal testing
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.flaze
+          track: internal
+          status: completed
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload-key.jks"

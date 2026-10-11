@@ -62,7 +62,7 @@
                 android:layout_marginTop="@dimen/spacing_xs"
                 android:text="@string/pro_features_description"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center" />
 
         </LinearLayout>
 
@@ -106,6 +106,17 @@
         </LinearLayout>
 
         <!-- Price Display -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:hint="@string/preview_sound">
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/previewSelector"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="none"
+                android:singleLine="true" android:importantForAutofill="no" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/previewButton"
+            style="@style/Widget.Material3.Button.TonalButton" android:layout_width="match_parent"
+            android:layout_height="48dp" android:text="@string/hear_preview" />
         <TextView
             android:id="@+id/priceText"
             android:layout_width="match_parent"
@@ -126,6 +137,10 @@
             android:textColor="?attr/colorOnSurfaceVariant" />
 
         <!-- Purchase Button -->
+        <TextView android:id="@+id/billingStatus" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center"
+            android:text="@string/billing_loading" android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" android:accessibilityLiveRegion="polite" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/purchaseButton"
             style="@style/Widget.Material3.Button"

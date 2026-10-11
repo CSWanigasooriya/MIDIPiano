@@ -1,902 +1,409 @@
 package com.flaze;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.PictureInPictureParams;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Rect;
-import android.os.Build;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.util.Rational;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
-
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.gms.ads.*;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.chip.Chip;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.ump.ConsentInformation;
-import com.google.android.ump.ConsentRequestParameters;
-import com.google.android.ump.UserMessagingPlatform;
-
+import com.google.android.ump.*;
 import org.billthefarmer.mididriver.MidiDriver;
+import java.io.*;
+import java.util.List;
 
-import java.util.HashSet;
-import java.util.Set;
+public class MainActivity extends Activity implements BillingManager.BillingListener, PianoKeyboardView.NoteListener {
+    private static final int[] FREE = {0, 10, 24, 40, 56, 73};
+    private static final int[] PRO = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,19,24,25,26,27,40,41,42,56,73};
+    private static final int EXPORT_REQUEST = 41;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final Handler playback = new Handler(Looper.getMainLooper());
+    private final Handler preview = new Handler(Looper.getMainLooper());
+    private final MidiRecording take = new MidiRecording();
+    private MidiDriver midi;
+    private BillingManager billing;
+    private SharedPreferences prefs;
+    private PianoKeyboardView keyboard;
+    private MaterialButton recordButton, playButton, exportButton, metroButton;
+    private TextView sessionStatus;
+    private BottomSheetDialog premiumSheet, controlsSheet;
+    private View premiumContent, controlsContent;
+    private ConsentInformation consent;
+    private AdView banner;
+    private ToneGenerator tone;
+    private int program, transpose, velocity = 100, bpm = 100;
+    private boolean sustain, recording, playing, metronome, audioReady, destroyed, adsStarting, resumed;
+    private long recordStart, beatAt;
+    private int beat;
+    private int adGeneration;
+    private int previewProgram = 4;
+    private boolean previewing;
+    private byte[] pendingExport;
 
-public class MainActivity extends Activity implements MidiDriver.OnMidiStartListener, View.OnTouchListener, BillingManager.BillingListener {
-
-    private static final String TAG_ADMOB = "AdMob";
-    private static final String PREF_LANDSCAPE_HINT_SHOWN = "landscape_hint_shown";
-    // Pro instruments (MIDI program numbers, 0-based)
-    private static final int[] FREE_INSTRUMENTS = {0, 10, 24, 40, 56, 73}; // 6 instruments
-    private static final int[] PRO_INSTRUMENTS = {0, 1, 2, 3, 4, 5, 6, 7,     // Pianos
-            8, 9, 10, 11, 12, 13,       // Chromatic Percussion
-            19,                          // Church Organ
-            24, 25, 26, 27,             // Guitars
-            40, 41, 42,                  // Strings
-            56, 73                       // Brass & Woodwind
-    };
-    private final Set<Integer> sustainedNotes = new HashSet<>();
-    private MidiDriver midiDriver;
-    private byte[] event;
-    private int[] instruments;
-    private HorizontalScrollView scroller;
-    private AdView adView;
-    private boolean bannerInitialized = false;
-    private int transposeSemitones = 0; // -24..+24
-    private boolean sustainEnabled = false;
-    private int currentVelocity = 127; // Default max velocity (0-127)
-    private BottomSheetDialog controlsSheet;
-    private BottomSheetDialog premiumSheet;
-    // Billing & Premium
-    private BillingManager billingManager;
-    private MaterialButton premiumButton;
-    private Chip octaveChip;
-    private FrameLayout adContainer;
-
-    private static int getSemitone(String tag, int idx, char noteChar) {
-        boolean sharp = (idx < tag.length() && tag.charAt(idx) == '#');
-
-        int semitoneBase = switch (noteChar) {
-            case 'c' -> 0;
-            case 'd' -> 2;
-            case 'e' -> 4;
-            case 'f' -> 5;
-            case 'g' -> 7;
-            case 'a' -> 9;
-            case 'b' -> 11;
-            default -> throw new IllegalArgumentException("Invalid note tag: " + tag);
-        };
-
-        return semitoneBase + (sharp ? 1 : 0);
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        // Enable edge-to-edge display (modern API for Android 15+)
+    @Override protected void onCreate(Bundle state) {
+        super.onCreate(state);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         setContentView(R.layout.activity_main);
-
-        // Handle window insets for edge-to-edge
-        setupEdgeToEdge();
-
-        // Initialize billing manager
-        billingManager = new BillingManager(this, this);
-
-        // Setup UI references
-        premiumButton = findViewById(R.id.premiumButton);
-        octaveChip = findViewById(R.id.octaveChip);
-        adContainer = findViewById(R.id.ad_container);
-
-        // Setup premium button click
-        if (premiumButton != null) {
-            premiumButton.setOnClickListener(v -> showPremiumSheet());
-        }
-
-        // Non-disruptive ads: banner only (no app-open / interstitial on startup).
-        // AdView is created programmatically inside ad_container.
-        if (!billingManager.isPro()) {
-            initConsentAndAds();
-        }
-
-        MaterialAutoCompleteTextView instrumentSelector = findViewById(R.id.selector);
-
-        //MIDI Instrument Codes for Acoustic Grand Piano, Electric Grand Piano, Music Box, Acoustic Nylon Guitar, Trumpet, Flute
-        instruments = new int[]{1, 10, 24, 40, 56, 73};
-
-        scroller = findViewById(R.id.horizontalScroller);
-
-        // Bind all piano key buttons automatically (no repetitive findViewById).
-        bindPianoKeys();
-
-        // Get the MidiDriver instance (singleton in v1.29+)
-        midiDriver = MidiDriver.getInstance();
-        // Set the listener.
-        midiDriver.setOnMidiStartListener(this);
-
-        // Now setup instrument dropdown (requires midiDriver)
-        setupInstrumentDropdown(instrumentSelector);
-
-        // Update UI based on pro status (after midiDriver is initialized)
-        updateProUI(billingManager.isPro());
-
-        ViewTreeObserver vto = scroller.getViewTreeObserver();
-        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                scroller.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
-                // Improve usability: enlarge the tappable area for narrow black keys.
-                expandBlackKeyTouchTargets();
-            }
+        View root = findViewById(R.id.studioRoot);
+        int pad = (int) (12 * getResources().getDisplayMetrics().density);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(pad + bars.left, bars.top, pad + bars.right, pad + bars.bottom);
+            return insets;
         });
-
-
-        setupControlsBottomSheet();
-        setupPremiumBottomSheet();
-
-        View controlsButton = findViewById(R.id.controlsButton);
-        if (controlsButton != null) {
-            controlsButton.setOnClickListener(v -> {
-                if (controlsSheet != null) controlsSheet.show();
-            });
-        }
-
-        // Update octave display
-        updateOctaveDisplay();
-
-        // Show landscape hint for first-time users in portrait mode
-        showLandscapeHintIfNeeded();
+        prefs = getSharedPreferences("midi_piano_prefs", MODE_PRIVATE);
+        program = prefs.getInt("instrument", 0);
+        transpose = Math.max(-24, Math.min(24, prefs.getInt("transpose", 0)));
+        velocity = Math.max(10, Math.min(127, prefs.getInt("velocity", 100)));
+        bpm = Math.max(40, Math.min(240, prefs.getInt("bpm", 100)));
+        sustain = prefs.getBoolean("sustain", false);
+        keyboard = findViewById(R.id.pianoKeyboard);
+        keyboard.setNoteListener(this);
+        keyboard.setLabels(prefs.getBoolean("labels", true));
+        keyboard.setBase(48 + transpose);
+        recordButton = findViewById(R.id.recordButton);
+        playButton = findViewById(R.id.playButton);
+        exportButton = findViewById(R.id.exportButton);
+        metroButton = findViewById(R.id.metronomeButton);
+        sessionStatus = findViewById(R.id.sessionStatus);
+        midi = MidiDriver.getInstance();
+        midi.setOnMidiStartListener(() -> main.post(() -> {
+            if (destroyed || !resumed) return;
+            audioReady = true;
+            send(0xc0, program, 0);
+            send(0xb0, 64, sustain ? 127 : 0);
+        }));
+        setupSheets();
+        billing = new BillingManager(this, this);
+        updateProUI();
+        findViewById(R.id.premiumButton).setOnClickListener(v -> showPremium());
+        findViewById(R.id.controlsButton).setOnClickListener(v -> { refreshControls(); controlsSheet.show(); });
+        findViewById(R.id.octaveDown).setOnClickListener(v -> setTranspose(transpose - 12));
+        findViewById(R.id.octaveUp).setOnClickListener(v -> setTranspose(transpose + 12));
+        recordButton.setOnClickListener(v -> {
+            if (recording) finishRecording();
+            else if (take.hasNotes()) new MaterialAlertDialogBuilder(this).setTitle(R.string.new_take_title)
+                    .setMessage(R.string.new_take_message).setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.record, (dialog, which) -> startRecording()).show();
+            else startRecording();
+        });
+        playButton.setOnClickListener(v -> { if (playing) stopPlayback(); else replay(); });
+        exportButton.setOnClickListener(v -> exportTake());
+        metroButton.setOnClickListener(v -> { if (metronome) stopMetronome(); else startMetronome(); });
+        updateOctave(); loadTake(); updateSession(); initConsent();
+        if (state != null) pendingExport = state.getByteArray("pending_export");
     }
 
-    private void showLandscapeHintIfNeeded() {
-        // Only show hint in portrait mode
-        if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
-            android.content.SharedPreferences prefs = getSharedPreferences("midi_piano_prefs", MODE_PRIVATE);
-            boolean hintShown = prefs.getBoolean(PREF_LANDSCAPE_HINT_SHOWN, false);
-
-            if (!hintShown) {
-                // Show a Snackbar with the hint
-                View rootView = findViewById(android.R.id.content);
-                com.google.android.material.snackbar.Snackbar.make(rootView, R.string.landscape_hint, com.google.android.material.snackbar.Snackbar.LENGTH_LONG).setAction("OK", v -> {
-                }).show();
-
-                // Mark hint as shown
-                prefs.edit().putBoolean(PREF_LANDSCAPE_HINT_SHOWN, true).apply();
-            }
-        }
-    }
-
-    private void setupControlsBottomSheet() {
+    private void setupSheets() {
         controlsSheet = new BottomSheetDialog(this);
-        View content = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_controls, (ViewGroup) getWindow().getDecorView(), false);
-        controlsSheet.setContentView(content);
-
-        controlsSheet.setOnShowListener(dialog -> {
-            View sheet = controlsSheet.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (sheet != null) {
-                sheet.setBackgroundResource(android.R.color.transparent);
-                BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(sheet);
-                behavior.setFitToContents(true);
-                behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
-                behavior.setSkipCollapsed(false);
-            }
-            // Update velocity UI based on pro status when sheet is shown
-            updateVelocityUI(content);
+        controlsContent = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_controls, (ViewGroup) getWindow().getDecorView(), false);
+        controlsSheet.setContentView(controlsContent);
+        controlsContent.findViewById(R.id.transposeDown).setOnClickListener(v -> setTranspose(transpose - 12));
+        controlsContent.findViewById(R.id.transposeUp).setOnClickListener(v -> setTranspose(transpose + 12));
+        MaterialSwitch pedal = controlsContent.findViewById(R.id.sustainSwitch);
+        pedal.setChecked(sustain);
+        pedal.setOnCheckedChangeListener((v, checked) -> { sustain = checked; send(0xb0,64,checked ? 127 : 0); saveSettings(); });
+        Slider dynamics = controlsContent.findViewById(R.id.velocitySlider);
+        dynamics.setValue(velocity);
+        dynamics.addOnChangeListener((slider, value, user) -> {
+            if (user && billing != null && billing.isPro()) { velocity = (int) value; saveSettings(); refreshControls(); }
         });
-
-        MaterialButton transposeDown = content.findViewById(R.id.transposeDown);
-        MaterialButton transposeUp = content.findViewById(R.id.transposeUp);
-        MaterialSwitch sustainSwitch = content.findViewById(R.id.sustainSwitch);
-
-        // Velocity controls
-        com.google.android.material.slider.Slider velocitySlider = content.findViewById(R.id.velocitySlider);
-        TextView velocityValue = content.findViewById(R.id.velocityValue);
-
-        if (transposeDown != null) {
-            transposeDown.setOnClickListener(v -> setTransposeSemitones(transposeSemitones - 12));
-        }
-        if (transposeUp != null) {
-            transposeUp.setOnClickListener(v -> setTransposeSemitones(transposeSemitones + 12));
-        }
-
-        if (sustainSwitch != null) {
-            sustainSwitch.setChecked(sustainEnabled);
-            sustainSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                sustainEnabled = isChecked;
-                if (!sustainEnabled) {
-                    // Release all sustained notes when sustain is turned off.
-                    for (Integer note : sustainedNotes) {
-                        stopNote(note);
-                    }
-                    sustainedNotes.clear();
-                }
-            });
-        }
-
-        // Setup velocity slider
-        if (velocitySlider != null && velocityValue != null) {
-            velocitySlider.setValue(currentVelocity);
-            velocityValue.setText(getString(R.string.velocity_value, (int) (currentVelocity / 1.27f)));
-
-            velocitySlider.addOnChangeListener((slider, value, fromUser) -> {
-                if (fromUser && billingManager != null && billingManager.isPro()) {
-                    currentVelocity = (int) value;
-                    velocityValue.setText(getString(R.string.velocity_value, (int) (value / 1.27f)));
-                } else if (fromUser && (billingManager == null || !billingManager.isPro())) {
-                    // Reset to max if not pro
-                    slider.setValue(127);
-                    Toast.makeText(this, R.string.velocity_pro_hint, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // Update velocity UI initially
-        updateVelocityUI(content);
-    }
-
-    private void updateVelocityUI(View content) {
-        com.google.android.material.slider.Slider velocitySlider = content.findViewById(R.id.velocitySlider);
-        TextView velocityProHint = content.findViewById(R.id.velocityProHint);
-
-        boolean isPro = billingManager != null && billingManager.isPro();
-
-        if (velocitySlider != null) {
-            velocitySlider.setEnabled(isPro);
-            velocitySlider.setAlpha(isPro ? 1.0f : 0.5f);
-        }
-        if (velocityProHint != null) {
-            velocityProHint.setVisibility(isPro ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    private void setTransposeSemitones(int newValue) {
-        // clamp to a reasonable range
-        if (newValue < -24) newValue = -24;
-        if (newValue > 24) newValue = 24;
-        transposeSemitones = newValue;
-        updateOctaveDisplay();
-    }
-
-    private void updateOctaveDisplay() {
-        if (octaveChip != null) {
-            // Base octave is 3-4, transpose shifts by octaves
-            int baseOctave = 3 + (transposeSemitones / 12);
-            octaveChip.setText(getString(R.string.current_octave, baseOctave));
-        }
-    }
-
-    private void updateProUI(boolean isPro) {
-        // Hide premium button if already pro
-        if (premiumButton != null) {
-            premiumButton.setVisibility(isPro ? View.GONE : View.VISIBLE);
-        }
-
-        // Hide ads if pro
-        if (adContainer != null) {
-            adContainer.setVisibility(isPro ? View.GONE : View.VISIBLE);
-        }
-
-        // Adjust keyboard padding based on pro status
-        ViewGroup keyboardRoot = findViewById(R.id.keyboardRoot);
-        if (keyboardRoot != null) {
-            if (isPro) {
-                // No ad, no bottom padding needed
-                keyboardRoot.setPadding(0, 0, 0, 0);
-            } else if (adContainer != null && adContainer.getVisibility() == View.VISIBLE) {
-                // Ad is visible, add padding
-                int adHeight = adContainer.getHeight();
-                if (adHeight <= 0) {
-                    adHeight = (int) (70 * getResources().getDisplayMetrics().density);
-                }
-                int padding = adHeight + (int) (8 * getResources().getDisplayMetrics().density);
-                keyboardRoot.setPadding(0, 0, 0, padding);
-            }
-        }
-
-        // Destroy ad view if pro
-        if (isPro && adView != null) {
-            adView.destroy();
-            adView = null;
-        }
-
-        // If switching back to non-pro and ads haven't been initialized, start them
-        if (!isPro && !bannerInitialized) {
-            initConsentAndAds();
-        }
-
-        // Refresh instrument list for pro users
-        MaterialAutoCompleteTextView instrumentSelector = findViewById(R.id.selector);
-        if (instrumentSelector != null) {
-            updateInstrumentList(instrumentSelector);
-        }
-
-        // Reset velocity if switching from pro to free
-        if (!isPro) {
-            currentVelocity = 127;
-        }
-    }
-
-    private void showPremiumSheet() {
-        if (premiumSheet != null) {
-            // Update price before showing
-            TextView priceText = premiumSheet.findViewById(R.id.priceText);
-            if (priceText != null && billingManager != null) {
-                priceText.setText(billingManager.getProPrice());
-            }
-            premiumSheet.show();
-        }
-    }
-
-    private void setupPremiumBottomSheet() {
+        MaterialSwitch labels = controlsContent.findViewById(R.id.labelsSwitch);
+        labels.setChecked(prefs.getBoolean("labels", true));
+        labels.setOnCheckedChangeListener((v, checked) -> { keyboard.setLabels(checked); prefs.edit().putBoolean("labels",checked).apply(); });
+        Slider tempo = controlsContent.findViewById(R.id.tempoSlider);
+        tempo.setValue(bpm);
+        tempo.addOnChangeListener((slider, value, user) -> {
+            bpm = (int) value;
+            ((TextView) controlsContent.findViewById(R.id.tempoValue)).setText(getString(R.string.tempo_value, bpm));
+            if (user) { saveSettings(); if (metronome) { stopMetronome(); startMetronome(); } }
+        });
+        controlsContent.findViewById(R.id.privacyButton).setOnClickListener(v -> UserMessagingPlatform.showPrivacyOptionsForm(this, error -> {
+            updatePrivacyButton(); if (error != null) toast(error.getMessage());
+            resetBanner(); loadBanner();
+        }));
+        controlsContent.findViewById(R.id.velocityProHint).setOnClickListener(v -> { controlsSheet.dismiss(); showPremium(); });
         premiumSheet = new BottomSheetDialog(this);
-        View content = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_premium, (ViewGroup) getWindow().getDecorView(), false);
-        premiumSheet.setContentView(content);
-
+        premiumContent = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_premium, (ViewGroup) getWindow().getDecorView(), false);
+        premiumSheet.setContentView(premiumContent);
         premiumSheet.setOnShowListener(dialog -> {
             View sheet = premiumSheet.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (sheet != null) {
-                sheet.setBackgroundResource(android.R.color.transparent);
-                BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(sheet);
-                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            }
+            if (sheet != null) BottomSheetBehavior.from(sheet).setState(BottomSheetBehavior.STATE_EXPANDED);
         });
-
-        MaterialButton purchaseButton = content.findViewById(R.id.purchaseButton);
-        MaterialButton restoreButton = content.findViewById(R.id.restoreButton);
-        TextView priceText = content.findViewById(R.id.priceText);
-
-        if (priceText != null && billingManager != null) {
-            priceText.setText(billingManager.getProPrice());
-        }
-
-        if (purchaseButton != null) {
-            purchaseButton.setOnClickListener(v -> {
-                if (billingManager != null) {
-                    billingManager.launchPurchaseFlow();
-                }
-            });
-        }
-
-        if (restoreButton != null) {
-            restoreButton.setOnClickListener(v -> {
-                if (billingManager != null) {
-                    billingManager.restorePurchases();
-                }
-            });
-        }
-    }
-
-    // BillingManager.BillingListener callbacks
-    @Override
-    public void onPurchaseSuccess() {
-        Toast.makeText(this, R.string.purchase_success, Toast.LENGTH_SHORT).show();
-        if (premiumSheet != null && premiumSheet.isShowing()) {
-            premiumSheet.dismiss();
-        }
-    }
-
-    @Override
-    public void onPurchaseRestored() {
-        Toast.makeText(this, R.string.purchase_restored, Toast.LENGTH_SHORT).show();
-        if (premiumSheet != null && premiumSheet.isShowing()) {
-            premiumSheet.dismiss();
-        }
-    }
-
-    @Override
-    public void onPurchasePending() {
-        Toast.makeText(this, R.string.purchase_pending, Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onPurchaseError(String message) {
-        Toast.makeText(this, getString(R.string.purchase_error) + ": " + message, Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onProStatusChanged(boolean isPro) {
-        updateProUI(isPro);
-    }
-
-    private void bindPianoKeys() {
-        ViewGroup keyboardRoot = findViewById(R.id.keyboardRoot);
-        if (keyboardRoot == null) {
-            // Fallback: scan the whole view tree
-            View root = getWindow().getDecorView().getRootView();
-            if (root instanceof ViewGroup) {
-                keyboardRoot = (ViewGroup) root;
-            } else {
-                return;
-            }
-        }
-        bindPianoKeysRecursive(keyboardRoot);
-    }
-
-    private void bindPianoKeysRecursive(ViewGroup parent) {
-        for (int i = 0; i < parent.getChildCount(); i++) {
-            View child = parent.getChildAt(i);
-            Object tagObj = child.getTag();
-            if (tagObj instanceof String tag) {
-                if (looksLikeNoteTag(tag)) {
-                    child.setOnTouchListener(this);
-                    // Set accessibility label for screen readers
-                    String noteLabel = formatNoteLabel(tag);
-                    child.setContentDescription(getString(R.string.cd_piano_key, noteLabel));
-                }
-            }
-            if (child instanceof ViewGroup) {
-                bindPianoKeysRecursive((ViewGroup) child);
-            }
-        }
-    }
-
-    private String formatNoteLabel(String tag) {
-        // Convert "c3#" to "C3 sharp", "d4" to "D4"
-        StringBuilder sb = new StringBuilder();
-        sb.append(Character.toUpperCase(tag.charAt(0)));
-        for (int i = 1; i < tag.length(); i++) {
-            char c = tag.charAt(i);
-            if (c == '#') {
-                sb.append(" sharp");
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    private boolean looksLikeNoteTag(String tag) {
-        // Expected: c3, d4, f3#, etc.
-        if (tag == null || tag.length() < 2) return false;
-        char note = Character.toLowerCase(tag.charAt(0));
-        if (note < 'a' || note > 'g') return false;
-        // must contain a digit octave
-        for (int i = 1; i < tag.length(); i++) {
-            if (Character.isDigit(tag.charAt(i))) return true;
-        }
-        return false;
-    }
-
-    private int midiNoteFromTag(String tag) {
-        // MIDI note number: C0=12. Your existing math was: (octave*12)+semitone where octave=(i+1).
-        // This effectively means C1=24, C3=48, C4=60. We'll preserve that by mapping octaveNumber -> (octaveNumber+1)*12.
-
-        // Parse: <note><octave>[#]
-        char noteChar = Character.toLowerCase(tag.charAt(0));
-        int idx = 1;
-        int octave = 0;
-        boolean hasDigit = false;
-        while (idx < tag.length() && Character.isDigit(tag.charAt(idx))) {
-            hasDigit = true;
-            octave = octave * 10 + (tag.charAt(idx) - '0');
-            idx++;
-        }
-        if (!hasDigit) throw new IllegalArgumentException("Invalid note tag: " + tag);
-
-        int semitone = getSemitone(tag, idx, noteChar);
-        int base = (octave + 1) * 12;
-        return base + semitone;
-    }
-
-    private void initConsentAndAds() {
-        // Request consent where required (EEA/UK). If consent isn't required, this returns quickly.
-        ConsentRequestParameters params = new ConsentRequestParameters.Builder().setTagForUnderAgeOfConsent(false).build();
-
-        ConsentInformation consentInformation = UserMessagingPlatform.getConsentInformation(this);
-
-        consentInformation.requestConsentInfoUpdate(this, params, () -> {
-            // Load/show consent form if needed.
-            UserMessagingPlatform.loadAndShowConsentFormIfRequired(this, formError -> {
-                // Even if we can't show a form, we can still attempt to load ads where allowed.
-                startMobileAdsAndLoadBanner();
-            });
-        }, requestError -> {
-            // If consent request fails, don't block app usage.
-            startMobileAdsAndLoadBanner();
+        premiumSheet.setOnDismissListener(dialog -> stopPreview());
+        MaterialAutoCompleteTextView sound = premiumContent.findViewById(R.id.previewSelector);
+        String[] names = getResources().getStringArray(R.array.instrument_array_pro);
+        sound.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,names));
+        sound.setText(names[4],false);
+        sound.setOnItemClickListener((parent,view,pos,id) -> { stopPreview(); previewProgram = PRO[pos]; });
+        premiumContent.findViewById(R.id.previewButton).setOnClickListener(v -> previewSound());
+        premiumContent.findViewById(R.id.purchaseButton).setOnClickListener(v -> {
+            if (billing.canPurchase()) billing.launchPurchaseFlow(); else billing.refresh();
         });
+        premiumContent.findViewById(R.id.restoreButton).setOnClickListener(v -> billing.restorePurchases());
     }
-
-    private boolean isDebuggable() {
-        return (getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    private void showPremium() {
+        finishRecording(); stopPlayback(); silence(); billing.refresh(); refreshPremium(); premiumSheet.show();
     }
-
-    private String getBannerAdUnitId() {
-        // Use Google's official test ID in debuggable builds to avoid "No fill" during development.
-        if (isDebuggable()) {
-            return getString(R.string.admob_banner_ad_unit_id_test);
+    private void previewSound() {
+        if (!audioReady) { toast(getString(R.string.audio_loading)); return; }
+        stopPreview(); silence(); previewing = true;
+        send(0xb0,64,0); send(0xc0,previewProgram,0);
+        int[] notes = {60,64,67,72};
+        long start = SystemClock.uptimeMillis();
+        for (int i = 0; i < notes.length; i++) {
+            int note = notes[i];
+            preview.postAtTime(() -> send(0x90,note,100),start + i * 180);
+            preview.postAtTime(() -> send(0x80,note,0),start + i * 180 + 500);
         }
-        return getString(R.string.admob_banner_ad_unit_id);
+        preview.postAtTime(this::stopPreview,start + 1200);
+    }
+    private void stopPreview() {
+        preview.removeCallbacksAndMessages(null);
+        if (previewing) { previewing = false; silence(); send(0xc0,program,0); }
     }
 
-    private void startMobileAdsAndLoadBanner() {
-        if (bannerInitialized) return;
-        bannerInitialized = true;
-
-        MobileAds.initialize(this, initializationStatus -> {
-            FrameLayout adContainer = findViewById(R.id.ad_container);
-            if (adContainer == null) return;
-
-            AdView bannerView = new AdView(this);
-            bannerView.setAdUnitId(getBannerAdUnitId());
-
-            // Measure width in dp for anchored adaptive banner.
-            DisplayMetrics outMetrics = getResources().getDisplayMetrics();
-            int adWidthDp = (int) (outMetrics.widthPixels / outMetrics.density);
-
-            AdSize adaptiveSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidthDp);
-            bannerView.setAdSize(adaptiveSize);
-
-            // Ensure the view gets measured/laid out.
-            bannerView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
-
-            bannerView.setAdListener(new AdListener() {
-                @Override
-                public void onAdLoaded() {
-                    Log.d(TAG_ADMOB, "Banner loaded");
-                    // Adjust keyboard padding to match actual ad height
-                    adjustKeyboardPaddingForAd(adContainer);
-                }
-
-                @Override
-                public void onAdFailedToLoad(@NonNull LoadAdError adError) {
-                    Log.w(TAG_ADMOB, "Banner failed to load: " + adError);
-                    // Hide ad container if ad fails to load
-                    adContainer.setVisibility(View.GONE);
-                    // Remove bottom padding since no ad
-                    ViewGroup keyboardRoot = findViewById(R.id.keyboardRoot);
-                    if (keyboardRoot != null) {
-                        keyboardRoot.setPadding(0, 0, 0, 0);
-                    }
-                }
-            });
-
-            adContainer.removeAllViews();
-            adContainer.addView(bannerView);
-
-            AdRequest request = new AdRequest.Builder().build();
-            bannerView.loadAd(request);
-
-            // Keep a reference for lifecycle management.
-            adView = bannerView;
-        });
+    private void refreshControls() {
+        boolean pro = billing != null && billing.isPro();
+        Slider slider = controlsContent.findViewById(R.id.velocitySlider);
+        slider.setEnabled(pro); slider.setAlpha(pro ? 1f : .4f);
+        ((TextView) controlsContent.findViewById(R.id.velocityValue)).setText(getString(R.string.velocity_value, Math.round((pro ? velocity : 127) * 100f / 127)));
+        controlsContent.findViewById(R.id.velocityProHint).setVisibility(pro ? View.GONE : View.VISIBLE);
+        ((TextView) controlsContent.findViewById(R.id.tempoValue)).setText(getString(R.string.tempo_value, bpm));
+        updatePrivacyButton();
     }
-
-    private void adjustKeyboardPaddingForAd(View adContainer) {
-        // Wait for the ad container to be measured
-        adContainer.post(() -> {
-            int adHeight = adContainer.getHeight();
-            if (adHeight <= 0) {
-                // Default padding if measurement fails
-                adHeight = (int) (70 * getResources().getDisplayMetrics().density);
+    private void refreshPremium() {
+        if (billing == null || premiumContent == null) return;
+        ((TextView) premiumContent.findViewById(R.id.priceText)).setText(billing.getProPrice());
+        ((TextView) premiumContent.findViewById(R.id.billingStatus)).setText(billing.getStatus());
+        MaterialButton buy = premiumContent.findViewById(R.id.purchaseButton);
+        buy.setEnabled(!billing.isBusy() && !billing.isRestoring() && !billing.isPro());
+        buy.setText(billing.canPurchase() ? getString(R.string.buy_price, billing.getProPrice())
+                : getString(billing.isBusy() ? R.string.loading_price : R.string.retry));
+        MaterialButton restore = premiumContent.findViewById(R.id.restoreButton);
+        restore.setEnabled(!billing.isRestoring());
+        restore.setText(billing.isRestoring() ? R.string.restoring : R.string.restore_purchase);
+    }
+    private void updateProUI() {
+        if (billing == null) return;
+        boolean pro = billing.isPro();
+        MaterialButton button = findViewById(R.id.premiumButton);
+        button.setText(pro ? R.string.premium_badge : R.string.premium); button.setEnabled(!pro);
+        if (pro) {
+            resetBanner();
+        } else loadBanner();
+        updateInstruments(); refreshControls(); refreshPremium();
+    }
+    private void updateInstruments() {
+        if (billing == null) return;
+        int[] codes = billing.isPro() ? PRO : FREE;
+        String[] names = getResources().getStringArray(billing.isPro() ? R.array.instrument_array_pro : R.array.instrument_array);
+        int selected = 0;
+        for (int i = 0; i < codes.length; i++) if (codes[i] == program) selected = i;
+        if (program != codes[selected]) { silence(); program = codes[selected]; send(0xc0,program,0); }
+        MaterialAutoCompleteTextView selector = findViewById(R.id.selector);
+        selector.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+        selector.setText(names[selected], false);
+        selector.setOnItemClickListener((parent, view, pos, id) -> { silence(); program = codes[pos]; send(0xc0,program,0); saveSettings(); });
+    }
+    private void setTranspose(int value) {
+        silence(); transpose = Math.max(-24,Math.min(24,value)); keyboard.setBase(48 + transpose); updateOctave(); saveSettings();
+    }
+    private void updateOctave() {
+        ((TextView) findViewById(R.id.octaveText)).setText(getString(R.string.current_octave, 3 + transpose / 12));
+        findViewById(R.id.octaveDown).setEnabled(transpose > -24); findViewById(R.id.octaveUp).setEnabled(transpose < 24);
+    }
+    private void saveSettings() {
+        prefs.edit().putInt("instrument",program).putInt("transpose",transpose).putInt("velocity",velocity)
+                .putInt("bpm",bpm).putBoolean("sustain",sustain).apply();
+    }
+    private void send(int status, int data1, int data2) {
+        if (!audioReady) return;
+        midi.write(status == 0xc0 ? new byte[]{(byte)status,(byte)data1} : new byte[]{(byte)status,(byte)data1,(byte)data2});
+        if (recording && !take.add(SystemClock.uptimeMillis() - recordStart,status,data1,data2)) finishRecording();
+    }
+    @Override public void onNoteOn(int note) { if (playing) stopPlayback(); send(0x90,note,billing != null && billing.isPro() ? velocity : 127); }
+    @Override public void onNoteOff(int note) { send(0x80,note,0); }
+    private void silence() {
+        keyboard.releaseAll(); send(0xb0,64,0); send(0xb0,123,0); send(0xb0,120,0); send(0xb0,64,sustain ? 127 : 0);
+    }
+    private void startRecording() {
+        if (!audioReady) { toast(getString(R.string.audio_loading)); return; }
+        stopPlayback(); silence(); take.clear(); recordStart = SystemClock.uptimeMillis(); recording = true;
+        send(0xc0,program,0); send(0xb0,64,sustain ? 127 : 0); main.post(ticker); updateSession();
+    }
+    private final Runnable ticker = new Runnable() {
+        @Override public void run() {
+            if (!recording) return;
+            if (SystemClock.uptimeMillis() - recordStart >= MidiRecording.MAX_DURATION_MS) { finishRecording(); toast(getString(R.string.take_limit)); }
+            else { updateSession(); main.postDelayed(this, 250); }
+        }
+    };
+    private void finishRecording() {
+        if (!recording) return;
+        recording = false;
+        long end = Math.min(MidiRecording.MAX_DURATION_MS, SystemClock.uptimeMillis() - recordStart);
+        take.add(end,0xb0,64,0); take.add(end,0xb0,123,0);
+        silence(); main.removeCallbacks(ticker); persistTake(); updateSession();
+    }
+    private void persistTake() {
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(new File(getFilesDir(),"last-take.tmp")))) {
+            List<MidiRecording.Event> events = take.snapshot(); out.writeInt(events.size());
+            for (MidiRecording.Event e : events) { out.writeLong(e.timeMs); out.writeInt(e.status); out.writeInt(e.data1); out.writeInt(e.data2); }
+        } catch (IOException e) { toast(getString(R.string.save_failed)); return; }
+        if (!new File(getFilesDir(),"last-take.tmp").renameTo(new File(getFilesDir(),"last-take.dat"))) toast(getString(R.string.save_failed));
+    }
+    private void loadTake() {
+        File file = new File(getFilesDir(),"last-take.dat"); if (!file.exists()) return;
+        try (DataInputStream in = new DataInputStream(new FileInputStream(file))) {
+            int size = in.readInt(); if (size < 0 || size > MidiRecording.MAX_EVENTS) throw new IOException();
+            for (int i = 0; i < size; i++) {
+                long time = in.readLong(); int status = in.readInt(), d1 = in.readInt(), d2 = in.readInt();
+                if (time < 0 || time > MidiRecording.MAX_DURATION_MS || (status != 0x90 && status != 0x80 && status != 0xb0 && status != 0xc0)
+                        || d1 < 0 || d1 > 127 || d2 < 0 || d2 > 127) throw new IOException();
+                take.add(time,status,d1,d2);
             }
-
-            ViewGroup keyboardRoot = findViewById(R.id.keyboardRoot);
-            if (keyboardRoot != null) {
-                // Add some extra padding for safety
-                int padding = adHeight + (int) (8 * getResources().getDisplayMetrics().density);
-                keyboardRoot.setPadding(0, 0, 0, padding);
-            }
-
-            // Update the ad container height to match (use ViewGroup.LayoutParams for compatibility)
-            ViewGroup.LayoutParams params = adContainer.getLayoutParams();
-            if (params != null) {
-                params.height = adHeight;
-                adContainer.setLayoutParams(params);
-            }
-        });
+        } catch (IOException e) { take.clear(); }
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        this.midiDriver.start();
-
-        if (adView != null) {
-            adView.resume();
-        }
+    private void replay() {
+        if (!audioReady || !take.hasNotes()) return;
+        silence(); playing = true; keyboard.setEnabled(false);
+        List<MidiRecording.Event> events = take.snapshot(); long start = SystemClock.uptimeMillis();
+        for (MidiRecording.Event e : events) playback.postAtTime(() -> { if (playing) send(e.status,e.data1,e.data2); }, start + e.timeMs);
+        playback.postAtTime(this::stopPlayback, start + events.get(events.size()-1).timeMs + 100); updateSession();
     }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        midiDriver.stop();
-
-        if (adView != null) {
-            adView.pause();
-        }
+    private void stopPlayback() {
+        playback.removeCallbacksAndMessages(null);
+        if (playing) { playing = false; silence(); send(0xc0,program,0); }
+        keyboard.setEnabled(true); updateSession();
     }
-
-    @Override
-    protected void onUserLeaveHint() {
-        super.onUserLeaveHint();
-        // Enter PiP mode when user presses home button (Android 8.0+)
-        enterPipMode();
+    private void updateSession() {
+        if (recordButton == null) return;
+        recordButton.setText(recording ? R.string.stop : R.string.record); playButton.setText(playing ? R.string.stop : R.string.replay);
+        playButton.setEnabled(!recording && take.hasNotes()); exportButton.setEnabled(!recording && !playing && take.hasNotes());
+        ((MaterialAutoCompleteTextView) findViewById(R.id.selector)).setEnabled(!playing);
+        sessionStatus.setText(recording ? getString(R.string.recording_time, (SystemClock.uptimeMillis()-recordStart)/1000)
+                : getString(playing ? R.string.playing_take : take.hasNotes() ? R.string.take_ready : R.string.studio_hint));
     }
-
-    @Override
-    protected void onDestroy() {
-        if (adView != null) {
-            adView.destroy();
-        }
-        if (billingManager != null) {
-            billingManager.destroy();
-        }
-        super.onDestroy();
-    }
-
-    private void playNote(int note) {
-
-        // Construct a note ON message for the note at the current velocity on channel 1:
-        event = new byte[3];
-        event[0] = (byte) (0x90);  // 0x90 = note On, 0x00 = channel 1
-        event[1] = (byte) note;
-        // Use velocity control if pro, otherwise max velocity
-        int velocity = (billingManager != null && billingManager.isPro()) ? currentVelocity : 127;
-        event[2] = (byte) velocity;
-
-        // Send the MIDI event to the synthesizer.
-        midiDriver.write(event);
-
-    }
-
-    private void stopNote(int note) {
-
-        // Construct a note OFF message for the middle C at minimum velocity on channel 1:
-        event[0] = (byte) (0x80);  // 0x80 = note Off, 0x00 = channel 1
-        event[1] = (byte) note;
-        event[2] = (byte) 0x00;  // 0x00 = the minimum velocity (0)
-
-        // Send the MIDI event to the synthesizer.
-        midiDriver.write(event);
-
-    }
-
-    private void selectInstrument(int instrument) {
-        if (midiDriver == null) return;
-
-        // Construct a program change to select the instrument on channel 1:
-        event = new byte[2];
-        event[0] = (byte) (0xC0); // 0xC0 = program change, 0x00 = channel 1
-        event[1] = (byte) instrument;
-
-        // Send the MIDI event to the synthesizer.
-        midiDriver.write(event);
-
-    }
-
-    @Override
-    public void onMidiStart() {
-        //..
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    @Override
-    public boolean onTouch(View v, MotionEvent event) {
+    private void exportTake() {
         try {
-            Object tagObj = v.getTag();
-            if (!(tagObj instanceof String tag)) return false;
-
-            int noteNumber = midiNoteFromTag(tag) + transposeSemitones;
-
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                sustainedNotes.remove(noteNumber);
-                playNote(noteNumber);
-            } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                if (sustainEnabled) {
-                    sustainedNotes.add(noteNumber);
-                } else {
-                    stopNote(noteNumber);
-                }
-            }
-        } catch (Exception e) {
-            Log.w(getClass().getName(), "Touch handling failed", e);
-        }
-        return false;
+            pendingExport = take.toMidi();
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("audio/midi").putExtra(Intent.EXTRA_TITLE,"Piano-" + System.currentTimeMillis() + ".mid");
+            startActivityForResult(intent,EXPORT_REQUEST);
+        } catch (IOException | android.content.ActivityNotFoundException e) { toast(getString(R.string.export_failed)); }
     }
-
-    private void expandBlackKeyTouchTargets() {
-        ViewGroup root = findViewById(R.id.keyboardRoot);
-        if (root == null) return;
-
-        // Collect delegates in one composite to avoid only the last one taking effect.
-        TouchDelegateComposite composite = new TouchDelegateComposite(root);
-
-        int minTargetPx = (int) (48f * getResources().getDisplayMetrics().density);
-
-        // Expand only sharps (black keys). This preserves white key feel.
-        int[] blackKeyIds = new int[]{R.id.c3Sharp, R.id.d3Sharp, R.id.f3Sharp, R.id.g3Sharp, R.id.a3Sharp, R.id.c4Sharp, R.id.d4Sharp, R.id.f4Sharp, R.id.g4Sharp, R.id.a4Sharp};
-
-        for (int id : blackKeyIds) {
-            View key = findViewById(id);
-            if (key == null) continue;
-
-            Rect hit = new Rect();
-            key.getHitRect(hit);
-
-            int width = hit.width();
-            int height = hit.height();
-
-            int dx = Math.max(0, (minTargetPx - width) / 2);
-            int dy = Math.max(0, (minTargetPx - height) / 2);
-
-            // Expand more upwards than downwards to avoid stealing the white key lower area.
-            hit.left -= dx;
-            hit.right += dx;
-            hit.top -= dy;
-            hit.bottom += Math.max(0, dy / 3);
-
-            composite.addDelegate(new TouchDelegate(hit, key));
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request,result,data); if (request != EXPORT_REQUEST) return;
+        if (result == RESULT_OK && data != null && data.getData() != null && pendingExport != null) {
+            try (OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+                if (out == null) throw new IOException(); out.write(pendingExport); toast(getString(R.string.export_success));
+            } catch (IOException | SecurityException e) { toast(getString(R.string.export_failed)); }
         }
-
-        root.setTouchDelegate(composite);
+        pendingExport = null;
     }
-
-    private void setupInstrumentDropdown(MaterialAutoCompleteTextView instrumentSelector) {
-        if (instrumentSelector == null) return;
-
-        updateInstrumentList(instrumentSelector);
+    private void startMetronome() {
+        try { if (tone == null) tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 45); }
+        catch (RuntimeException e) { toast(getString(R.string.audio_loading)); return; }
+        metronome = true; beat = 0; beatAt = SystemClock.uptimeMillis(); main.post(tick); metroButton.setText(getString(R.string.metronome_on,bpm));
     }
-
-    private void updateInstrumentList(MaterialAutoCompleteTextView instrumentSelector) {
-        if (instrumentSelector == null) return;
-
-        boolean isPro = billingManager != null && billingManager.isPro();
-
-        String[] names;
-        if (isPro) {
-            names = getResources().getStringArray(R.array.instrument_array_pro);
-            instruments = PRO_INSTRUMENTS;
-        } else {
-            names = getResources().getStringArray(R.array.instrument_array);
-            instruments = FREE_INSTRUMENTS;
+    private final Runnable tick = new Runnable() {
+        @Override public void run() {
+            if (!metronome || tone == null) return;
+            tone.startTone(beat++ % 4 == 0 ? ToneGenerator.TONE_PROP_BEEP2 : ToneGenerator.TONE_PROP_BEEP, 40);
+            beatAt += 60000 / bpm; if (beatAt < SystemClock.uptimeMillis()) beatAt = SystemClock.uptimeMillis(); main.postAtTime(this,beatAt);
         }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
-        instrumentSelector.setAdapter(adapter);
-
-        // Set a default selection (only select instrument if midiDriver is ready)
-        if (names.length > 0) {
-            instrumentSelector.setText(names[0], false);
-            // Only send MIDI if driver is initialized and started
-            if (midiDriver != null) {
-                selectInstrument(instruments[0]);
-            }
-        }
-
-        instrumentSelector.setOnItemClickListener((parent, view, position, id) -> {
-            if (position >= 0 && position < instruments.length) {
-                selectInstrument(instruments[position]);
-            }
-        });
+    };
+    private void stopMetronome() { metronome = false; main.removeCallbacks(tick); if (tone != null) tone.stopTone(); metroButton.setText(R.string.metronome); }
+    private void initConsent() {
+        consent = UserMessagingPlatform.getConsentInformation(this);
+        consent.requestConsentInfoUpdate(this,new ConsentRequestParameters.Builder().build(),
+                () -> { if (destroyed || isFinishing()) return; updatePrivacyButton(); UserMessagingPlatform.loadAndShowConsentFormIfRequired(this,error -> { updatePrivacyButton(); loadBanner(); }); },
+                error -> { updatePrivacyButton(); loadBanner(); });
+        loadBanner();
     }
-
-    private void setupEdgeToEdge() {
-        View rootView = findViewById(android.R.id.content);
-        if (rootView == null) return;
-
-        // Apply window insets listener for proper padding around system UI
-        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-
-            // Apply padding to root to prevent content from going behind system bars
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
-
-            // Return the insets to propagate to children
-            return WindowInsetsCompat.CONSUMED;
-        });
+    private void updatePrivacyButton() {
+        if (controlsContent != null) controlsContent.findViewById(R.id.privacyButton).setVisibility(consent != null
+                && consent.getPrivacyOptionsRequirementStatus() == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED ? View.VISIBLE : View.GONE);
     }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        // Handle orientation changes
-        if (scroller != null) {
-            scroller.post(() -> scroller.scrollTo(0, 0));
-        }
+    private void loadBanner() {
+        if (destroyed || consent == null || !consent.canRequestAds() || billing == null || billing.isPro() || adsStarting || banner != null) return;
+        adsStarting = true;
+        int generation = adGeneration;
+        MobileAds.initialize(this, status -> main.post(() -> {
+            if (generation != adGeneration) return;
+            if (destroyed || billing.isPro() || !consent.canRequestAds()) { adsStarting = false; return; }
+            FrameLayout container = findViewById(R.id.ad_container);
+            container.post(() -> {
+                if (generation != adGeneration) return;
+                if (destroyed || billing.isPro() || !consent.canRequestAds()) { adsStarting = false; return; }
+                int width = Math.max(1,(int)(container.getWidth() / getResources().getDisplayMetrics().density));
+                if (width <= 1) width = Math.max(1,getResources().getConfiguration().screenWidthDp - 24);
+                banner = new AdView(this);
+                banner.setAdUnitId(getString(BuildConfig.DEBUG ? R.string.admob_banner_ad_unit_id_test : R.string.admob_banner_ad_unit_id));
+                banner.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,width));
+                banner.setAdListener(new AdListener() {
+                    @Override public void onAdLoaded() { if (generation == adGeneration && !destroyed && !billing.isPro()) container.setVisibility(View.VISIBLE); }
+                    @Override public void onAdFailedToLoad(@NonNull LoadAdError error) { if (generation == adGeneration) container.setVisibility(View.GONE); }
+                });
+                container.removeAllViews(); container.addView(banner); banner.loadAd(new AdRequest.Builder().build()); adsStarting = false;
+            });
+        }));
     }
-
-    /**
-     * Enter Picture-in-Picture mode for floating piano window
-     */
-    public void enterPipMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Rational aspectRatio = new Rational(16, 9);
-            PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
-                    .setAspectRatio(aspectRatio);
-
-            try {
-                enterPictureInPictureMode(builder.build());
-            } catch (Exception e) {
-                Log.w(TAG_ADMOB, "Failed to enter PiP mode", e);
-            }
-        }
+    private void resetBanner() {
+        adGeneration++;
+        if (banner != null) { banner.destroy(); banner = null; }
+        adsStarting = false;
+        FrameLayout container = findViewById(R.id.ad_container);
+        container.removeAllViews(); container.setVisibility(View.GONE);
     }
-
-    @Override
-    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
-
-        // Hide/show UI elements based on PiP mode
-        View controlsButton = findViewById(R.id.controlsButton);
-        View instrumentField = findViewById(R.id.instrumentField);
-
-        if (isInPictureInPictureMode) {
-            // Hide controls when in PiP mode - only show piano keys
-            if (controlsButton != null) controlsButton.setVisibility(View.GONE);
-            if (premiumButton != null) premiumButton.setVisibility(View.GONE);
-            if (octaveChip != null) octaveChip.setVisibility(View.GONE);
-            if (instrumentField != null) instrumentField.setVisibility(View.GONE);
-            if (adContainer != null) adContainer.setVisibility(View.GONE);
-        } else {
-            // Restore controls when exiting PiP mode
-            if (controlsButton != null) controlsButton.setVisibility(View.VISIBLE);
-            if (octaveChip != null) octaveChip.setVisibility(View.VISIBLE);
-            if (instrumentField != null) instrumentField.setVisibility(View.VISIBLE);
-
-            // Only show premium button if not pro
-            if (premiumButton != null && (billingManager == null || !billingManager.isPro())) {
-                premiumButton.setVisibility(View.VISIBLE);
-            }
-            // Only show ads if not pro
-            if (adContainer != null && (billingManager == null || !billingManager.isPro())) {
-                adContainer.setVisibility(View.VISIBLE);
-            }
-        }
+    @Override protected void onResume() { super.onResume(); resumed = true; midi.start(); if (billing != null) billing.refresh(); if (banner != null) banner.resume(); }
+    @Override protected void onSaveInstanceState(@NonNull Bundle state) {
+        super.onSaveInstanceState(state);
+        if (pendingExport != null) state.putByteArray("pending_export", pendingExport);
     }
-
-    /**
-     * Android only supports 1 TouchDelegate per View.
-     * This composite lets us expand multiple children at once.
-     */
-    private static final class TouchDelegateComposite extends TouchDelegate {
-        private final java.util.List<TouchDelegate> delegates = new java.util.ArrayList<>();
-
-        TouchDelegateComposite(View delegateView) {
-            super(new Rect(), delegateView);
-        }
-
-        void addDelegate(TouchDelegate delegate) {
-            delegates.add(delegate);
-        }
-
-        @Override
-        public boolean onTouchEvent(@NonNull MotionEvent event) {
-            for (TouchDelegate d : delegates) {
-                if (d.onTouchEvent(event)) return true;
-            }
-            return false;
-        }
+    @Override public void onConfigurationChanged(@NonNull Configuration config) {
+        super.onConfigurationChanged(config);
+        resetBanner(); loadBanner();
     }
+    @Override protected void onPause() {
+        finishRecording(); stopPreview(); stopPlayback(); stopMetronome(); silence(); resumed = false; audioReady = false;
+        midi.stop(); if (banner != null) banner.pause(); saveSettings(); super.onPause();
+    }
+    @Override protected void onDestroy() {
+        destroyed = true; main.removeCallbacksAndMessages(null); playback.removeCallbacksAndMessages(null); preview.removeCallbacksAndMessages(null);
+        if (banner != null) banner.destroy(); if (tone != null) tone.release();
+        if (billing != null) billing.destroy(); controlsSheet.dismiss(); premiumSheet.dismiss(); super.onDestroy();
+    }
+    @Override public void onPurchaseSuccess() { toast(getString(R.string.purchase_success)); premiumSheet.dismiss(); }
+    @Override public void onPurchaseRestored() { toast(getString(R.string.purchase_restored)); premiumSheet.dismiss(); }
+    @Override public void onPurchasePending() { toast(getString(R.string.purchase_pending)); }
+    @Override public void onPurchaseError(String message) { toast(message); }
+    @Override public void onProStatusChanged(boolean pro) { updateProUI(); }
+    @Override public void onBillingStateChanged() { refreshPremium(); }
+    private void toast(String message) { Toast.makeText(this,message,Toast.LENGTH_LONG).show(); }
 }

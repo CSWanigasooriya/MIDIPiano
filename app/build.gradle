@@ -10,8 +10,8 @@ android {
         applicationId = "com.flaze"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "12"
+        versionCode = Integer.parseInt(System.getenv('PLAY_VERSION_CODE') ?: '13')
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -22,15 +22,27 @@ android {
         }
     }
 
-    // Handle native libraries that are not 16KB aligned
+    // Official v1.29 native libraries have 16KB-aligned 64-bit LOAD segments.
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
+        }
+    }
+
+    signingConfigs {
+        if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+            release {
+                storeFile = file(System.getenv('ANDROID_KEYSTORE_PATH'))
+                storePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias = System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+            }
         }
     }
 
     buildTypes {
         release {
+            if (System.getenv('ANDROID_KEYSTORE_PATH')) signingConfig = signingConfigs.release
             minifyEnabled = false
             proguardFiles(getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro')
         }
@@ -48,8 +60,6 @@ android {
     // Lint configuration - baseline for known issues
     lint {
         baseline = file("lint-baseline.xml")
-        // Temporarily ignore 16KB alignment until MidiDriver library is updated
-        disable.add('UncompressedNativeLibs')
     }
 }
 
@@ -63,9 +73,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
 
     // MidiDriver - Local AAR
-    // NOTE: This library is not 16KB aligned. Once the maintainer updates it,
-    // switch to: implementation 'com.github.billthefarmer:mididriver:<version>'
-    // Issue tracking: https://github.com/billthefarmer/mididriver/issues
+    // Official release asset; SHA-256 recorded in RELEASE.md. Not available on JitPack.
     implementation files('../MidiDriver-1.29/MidiDriver-1.29.aar')
 
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'

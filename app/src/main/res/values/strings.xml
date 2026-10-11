@@ -1,6 +1,35 @@
 <resources>
     <string name="app_name">MIDI Piano</string>
-    <string name="instrument_prompt">Program Change</string>
+    <string name="instrument_prompt">Your sound</string>
+    <string name="studio_title">Piano Studio</string>
+    <string name="record">Record</string>
+    <string name="replay">Replay</string>
+    <string name="stop">Stop</string>
+    <string name="export_midi">Save MIDI</string>
+    <string name="metronome">Metronome</string>
+    <string name="metronome_on">Beat · %1$d BPM</string>
+    <string name="tempo_value">%1$d BPM</string>
+    <string name="tempo">Practice tempo</string>
+    <string name="note_labels">Show note names</string>
+    <string name="privacy_options">Ad privacy options</string>
+    <string name="studio_hint">Play something. Capture an idea.</string>
+    <string name="new_take_title">Record a new take?</string>
+    <string name="new_take_message">This replaces your last take. Save it as MIDI first if you want to keep it.</string>
+    <string name="recording_time">Recording · %1$d s</string>
+    <string name="playing_take">Playing your last take</string>
+    <string name="take_ready">Take saved · replay or export</string>
+    <string name="take_limit">Five-minute take saved.</string>
+    <string name="audio_loading">Audio is starting. Please try again.</string>
+    <string name="save_failed">Could not save this take. Please export it before closing.</string>
+    <string name="export_failed">Could not save MIDI. Please try another location.</string>
+    <string name="export_success">MIDI saved. Open it in your music software.</string>
+    <string name="buy_price">Unlock Pro · %1$s</string>
+    <string name="loading_price">Connecting…</string>
+    <string name="retry">Retry</string>
+    <string name="restoring">Checking purchases…</string>
+    <string name="billing_loading">Loading price from Google Play…</string>
+    <string name="preview_sound">Try a Pro sound</string>
+    <string name="hear_preview">Hear a sample</string>
 
     <string name="controls">Controls</string>
     <string name="transpose">Transpose</string>
@@ -16,27 +45,27 @@
     <string name="current_octave">Oct %1$d</string>
 
     <!-- Premium Features -->
-    <string name="premium">Premium</string>
+    <string name="premium">Get Pro</string>
     <string name="premium_badge">PRO</string>
     <string name="upgrade_to_pro">Upgrade to Pro</string>
     <string name="pro_features_title">MIDI Piano Pro</string>
-    <string name="pro_features_description">Unlock all premium features</string>
+    <string name="pro_features_description">More sounds. More expression. Your own quiet studio.</string>
     <string name="pro_feature_no_ads">✓ Remove all advertisements</string>
     <string name="pro_feature_instruments">✓ 24 MIDI instruments (vs 6 free)</string>
-    <string name="pro_feature_velocity">✓ Velocity sensitivity control</string>
+    <string name="pro_feature_velocity">✓ Adjustable note volume for expressive playing</string>
     <string name="restore_purchase">Restore Purchase</string>
     <string name="purchase_success">Thank you! Pro features unlocked.</string>
     <string name="purchase_restored">Purchase restored successfully!</string>
     <string name="purchase_error">Purchase failed. Please try again.</string>
     <string name="purchase_pending">Purchase pending. Please complete payment.</string>
     <string name="already_pro">You already have Pro!</string>
-    <string name="price_fallback">$4.99</string>
-    <string name="one_time_purchase">One-time purchase</string>
+    <string name="price_fallback">Loading price…</string>
+    <string name="one_time_purchase">Pay once. Keep Pro. No subscription.</string>
 
 
     <!-- Velocity -->
     <string name="velocity">Velocity</string>
-    <string name="velocity_description">Touch response sensitivity</string>
+    <string name="velocity_description">Set the volume of each note</string>
     <string name="velocity_locked">Unlock with Pro</string>
 
     <!-- Accessibility -->
