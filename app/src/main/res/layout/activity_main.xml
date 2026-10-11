@@ -1,35 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/studioRoot" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="12dp">
+    android:id="@+id/studioRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="@string/studio_title" android:textAppearance="?attr/textAppearanceTitleLarge" android:textStyle="bold" android:textColor="?attr/colorOnSurface" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/premiumButton" style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/premium" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/controlsButton" style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/controls" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/instrumentField"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/instrument_prompt"
+            app:boxBackgroundColor="?attr/colorSurfaceContainerLow"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="?attr/colorOutlineVariant"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="1.5dp"
+            app:endIconTint="?attr/colorOnSurfaceVariant"
+            app:hintTextColor="?attr/colorPrimary">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/selector"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:importantForAutofill="no"
+                android:inputType="none"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
+                android:singleLine="true"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/premiumButton"
+            style="@style/Widget.MIDIPiano.Badge"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/premium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/controlsButton"
+            style="@style/Widget.MIDIPiano.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="6dp"
+            android:contentDescription="@string/controls"
+            app:icon="@drawable/ic_studio_controls" />
     </LinearLayout>
-    <com.google.android.material.textfield.TextInputLayout android:id="@+id/instrumentField"
-        style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:hint="@string/instrument_prompt" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp">
-        <com.google.android.material.textfield.MaterialAutoCompleteTextView android:id="@+id/selector" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:inputType="none" android:singleLine="true" android:importantForAutofill="no" />
-    </com.google.android.material.textfield.TextInputLayout>
-    <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none" android:fillViewport="true">
-        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="center_vertical">
-            <com.google.android.material.button.MaterialButton android:id="@+id/recordButton" android:layout_width="wrap_content" android:layout_height="52dp" android:text="@string/record" />
-            <com.google.android.material.button.MaterialButton android:id="@+id/playButton" style="@style/Widget.Material3.Button.TonalButton" android:layout_width="wrap_content" android:layout_height="52dp" android:layout_marginStart="6dp" android:text="@string/replay" />
-            <com.google.android.material.button.MaterialButton android:id="@+id/exportButton" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="52dp" android:text="@string/export_midi" />
-            <com.google.android.material.button.MaterialButton android:id="@+id/metronomeButton" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="52dp" android:text="@string/metronome" />
-        </LinearLayout>
-    </HorizontalScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center_vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/recordButton"
+            style="@style/Widget.MIDIPiano.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="@string/record" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playButton"
+            style="@style/Widget.MIDIPiano.Button.Secondary"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/replay" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/exportButton"
+            style="@style/Widget.MIDIPiano.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/export_midi"
+            app:icon="@drawable/ic_studio_export" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/metronomeButton"
+            style="@style/Widget.MIDIPiano.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:checkable="true"
+            android:contentDescription="@string/metronome"
+            app:backgroundTint="@color/metronome_background"
+            app:icon="@drawable/ic_studio_metronome"
+            app:iconTint="@color/metronome_icon" />
+    </LinearLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical">
-        <TextView android:id="@+id/sessionStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="@string/studio_hint" android:textColor="?attr/colorOnSurfaceVariant" android:textAppearance="?attr/textAppearanceBodySmall" android:maxLines="2" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/octaveDown" style="@style/Widget.Material3.Button.TextButton" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/octave_minus" android:contentDescription="@string/transpose_down" />
-        <TextView android:id="@+id/octaveText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="?attr/colorOnSurface" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/octaveUp" style="@style/Widget.Material3.Button.TextButton" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/octave_plus" android:contentDescription="@string/transpose_up" />
+
+        <TextView
+            android:id="@+id/sessionStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:text="@string/studio_hint"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_compact_octave"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="2dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/octaveDown"
+                style="@style/Widget.MIDIPiano.OctaveButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="@string/transpose_down"
+                android:text="@string/octave_minus" />
+
+            <TextView
+                android:id="@+id/octaveText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="8dp"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/octaveUp"
+                style="@style/Widget.MIDIPiano.OctaveButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="@string/transpose_up"
+                android:text="@string/octave_plus" />
+        </LinearLayout>
     </LinearLayout>
     <com.flaze.PianoKeyboardView android:id="@+id/pianoKeyboard" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     <FrameLayout android:id="@+id/ad_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:visibility="gone" android:contentDescription="@string/cd_ad_banner" />

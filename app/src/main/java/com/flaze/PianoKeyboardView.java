@@ -1,21 +1,26 @@
 package com.flaze;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.SparseIntArray;
-import android.view.MotionEvent;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+
 import java.util.List;
 
 /** One touch surface: independent fingers, glissando, and accessible virtual keys. */
@@ -34,6 +39,8 @@ public final class PianoKeyboardView extends View {
     private int touchGeneration;
     private boolean labels = true;
     private NoteListener listener;
+    private LinearGradient whiteFinish, blackFinish;
+    private boolean dark;
 
     public PianoKeyboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -49,6 +56,10 @@ public final class PianoKeyboardView extends View {
     @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         releaseAll();
         whiteCount = w / getResources().getDisplayMetrics().density >= 700 ? 14 : 7;
+        dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        whiteFinish = new LinearGradient(0, 0, 0, h, dark ? 0xFFB7C8C5 : 0xFFFFFFFF,
+                dark ? 0xFF859D98 : 0xFFDDE6E2, Shader.TileMode.CLAMP);
+        blackFinish = new LinearGradient(0, 0, 0, h * .61f, 0xFF39474D, 0xFF0B1217, Shader.TileMode.CLAMP);
         accessibility.invalidateRoot();
     }
 
@@ -68,19 +79,32 @@ public final class PianoKeyboardView extends View {
     }
     @Override protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
+        canvas.drawColor(dark ? 0xFF09110F : 0xFF53635E);
         for (int key : WHITE) if (key < (whiteCount == 7 ? 12 : 24)) drawKey(canvas, key, false);
         for (int key : BLACK) if (key < (whiteCount == 7 ? 12 : 24)) drawKey(canvas, key, true);
     }
     private void drawKey(Canvas canvas, int key, boolean black) {
         rect.set(bounds(key));
-        rect.inset(1.5f, 2);
-        paint.setColor(held[key] > 0 ? Color.rgb(100, 216, 192) : black ? Color.rgb(27, 34, 42) : Color.rgb(247, 248, 245));
-        canvas.drawRoundRect(rect, 5, 5, paint);
+        float density = getResources().getDisplayMetrics().density;
+        rect.inset(density, density);
+        boolean pressed = held[key] > 0;
+        paint.setShader(pressed ? null : black ? blackFinish : whiteFinish);
+        paint.setColor(pressed ? 0xFF64D8C0 : Color.WHITE);
+        canvas.drawRoundRect(rect, 4 * density, 4 * density, paint);
+        paint.setShader(null);
+        paint.setColor(black ? 0xFF060D11 : dark ? 0xFF526D66 : 0xFFACBDB6);
+        canvas.drawRoundRect(rect.left, rect.bottom - (pressed ? 2 : 5) * density,
+                rect.right, rect.bottom, 2 * density, 2 * density, paint);
+        if (black) {
+            paint.setColor(0xFF63747C);
+            canvas.drawLine(rect.left + 3 * density, rect.top + 2 * density,
+                    rect.right - 3 * density, rect.top + 2 * density, paint);
+        }
         if (!black && labels) {
-            paint.setColor(Color.rgb(66, 78, 85));
+            paint.setColor(0xFF203B33);
             paint.setTextSize(Math.min(width() * .32f, 14 * getResources().getDisplayMetrics().scaledDensity));
             paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(NAMES[key % 12] + ((base + key) / 12 - 1), rect.centerX(), rect.bottom - 18, paint);
+            canvas.drawText(NAMES[key % 12] + ((base + key) / 12 - 1), rect.centerX(), rect.bottom - 12 * density, paint);
         }
     }
     private void press(int key) {

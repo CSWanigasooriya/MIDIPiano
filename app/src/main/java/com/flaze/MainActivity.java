@@ -1,6 +1,6 @@
 package com.flaze;
 
-import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -17,25 +17,44 @@ import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.google.android.gms.ads.*;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
+
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.ump.*;
+import com.google.android.ump.ConsentInformation;
+import com.google.android.ump.ConsentRequestParameters;
+import com.google.android.ump.UserMessagingPlatform;
+
 import org.billthefarmer.mididriver.MidiDriver;
-import java.io.*;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
-public class MainActivity extends Activity implements BillingManager.BillingListener, PianoKeyboardView.NoteListener {
+public class MainActivity extends AppCompatActivity implements BillingManager.BillingListener, PianoKeyboardView.NoteListener {
     private static final int[] FREE = {0, 10, 24, 40, 56, 73};
     private static final int[] PRO = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,19,24,25,26,27,40,41,42,56,73};
     private static final int EXPORT_REQUEST = 41;
@@ -63,9 +82,22 @@ public class MainActivity extends Activity implements BillingManager.BillingList
     private boolean previewing;
     private byte[] pendingExport;
 
+    @Override
+    protected void attachBaseContext(Context context) {
+        int mode = context.getSharedPreferences("midi_piano_prefs", MODE_PRIVATE).getInt("appearance", 0);
+        int nightMode = (mode == 1) ? AppCompatDelegate.MODE_NIGHT_NO :
+                (mode == 2) ? AppCompatDelegate.MODE_NIGHT_YES :
+                        AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+        AppCompatDelegate.setDefaultNightMode(nightMode);
+        super.attachBaseContext(context);
+    }
+
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        boolean light = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES;
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(light);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightNavigationBars(light);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         setContentView(R.layout.activity_main);
         View root = findViewById(R.id.studioRoot);
@@ -100,7 +132,7 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         setupSheets();
         billing = new BillingManager(this, this);
         updateProUI();
-        findViewById(R.id.premiumButton).setOnClickListener(v -> showPremium());
+
         findViewById(R.id.controlsButton).setOnClickListener(v -> { refreshControls(); controlsSheet.show(); });
         findViewById(R.id.octaveDown).setOnClickListener(v -> setTranspose(transpose - 12));
         findViewById(R.id.octaveUp).setOnClickListener(v -> setTranspose(transpose + 12));
@@ -122,6 +154,25 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         controlsSheet = new BottomSheetDialog(this);
         controlsContent = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_controls, (ViewGroup) getWindow().getDecorView(), false);
         controlsSheet.setContentView(controlsContent);
+        MaterialButton appearance = controlsContent.findViewById(R.id.appearanceButton);
+        String[] appearances = getResources().getStringArray(R.array.appearance_options);
+        appearance.setText(getString(R.string.appearance_value, appearances[prefs.getInt("appearance", 0)]));
+        appearance.setOnClickListener(v -> new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.appearance).setSingleChoiceItems(appearances, prefs.getInt("appearance", 0), (dialog, which) -> {
+                    dialog.dismiss();
+                    if (which != prefs.getInt("appearance", 0)) {
+                        finishRecording();
+                        stopPlayback();
+                        stopMetronome();
+                        silence();
+                        prefs.edit().putInt("appearance", which).apply();
+                        int nightMode = (which == 1) ? AppCompatDelegate.MODE_NIGHT_NO :
+                                (which == 2) ? AppCompatDelegate.MODE_NIGHT_YES :
+                                        AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+                        AppCompatDelegate.setDefaultNightMode(nightMode);
+                        recreate();
+                    }
+                }).setNegativeButton(android.R.string.cancel, null).show());
         controlsContent.findViewById(R.id.transposeDown).setOnClickListener(v -> setTranspose(transpose - 12));
         controlsContent.findViewById(R.id.transposeUp).setOnClickListener(v -> setTranspose(transpose + 12));
         MaterialSwitch pedal = controlsContent.findViewById(R.id.sustainSwitch);
@@ -157,7 +208,7 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         premiumSheet.setOnDismissListener(dialog -> stopPreview());
         MaterialAutoCompleteTextView sound = premiumContent.findViewById(R.id.previewSelector);
         String[] names = getResources().getStringArray(R.array.instrument_array_pro);
-        sound.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,names));
+        sound.setAdapter(new ArrayAdapter<>(this, R.layout.item_dropdown_sound, names));
         sound.setText(names[4],false);
         sound.setOnItemClickListener((parent,view,pos,id) -> { stopPreview(); previewProgram = PRO[pos]; });
         premiumContent.findViewById(R.id.previewButton).setOnClickListener(v -> previewSound());
@@ -212,7 +263,12 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         if (billing == null) return;
         boolean pro = billing.isPro();
         MaterialButton button = findViewById(R.id.premiumButton);
-        button.setText(pro ? R.string.premium_badge : R.string.premium); button.setEnabled(!pro);
+        button.setText(pro ? R.string.premium_badge : R.string.premium);
+        button.setEnabled(true);
+        button.setOnClickListener(v -> {
+            if (billing.isPro()) toast(getString(R.string.pro_active));
+            else showPremium();
+        });
         if (pro) {
             resetBanner();
         } else loadBanner();
@@ -226,7 +282,7 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         for (int i = 0; i < codes.length; i++) if (codes[i] == program) selected = i;
         if (program != codes[selected]) { silence(); program = codes[selected]; send(0xc0,program,0); }
         MaterialAutoCompleteTextView selector = findViewById(R.id.selector);
-        selector.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+        selector.setAdapter(new ArrayAdapter<>(this, R.layout.item_dropdown_sound, names));
         selector.setText(names[selected], false);
         selector.setOnItemClickListener((parent, view, pos, id) -> { silence(); program = codes[pos]; send(0xc0,program,0); saveSettings(); });
     }
@@ -305,7 +361,7 @@ public class MainActivity extends Activity implements BillingManager.BillingList
         if (recordButton == null) return;
         recordButton.setText(recording ? R.string.stop : R.string.record); playButton.setText(playing ? R.string.stop : R.string.replay);
         playButton.setEnabled(!recording && take.hasNotes()); exportButton.setEnabled(!recording && !playing && take.hasNotes());
-        ((MaterialAutoCompleteTextView) findViewById(R.id.selector)).setEnabled(!playing);
+        findViewById(R.id.selector).setEnabled(!playing);
         sessionStatus.setText(recording ? getString(R.string.recording_time, (SystemClock.uptimeMillis()-recordStart)/1000)
                 : getString(playing ? R.string.playing_take : take.hasNotes() ? R.string.take_ready : R.string.studio_hint));
     }
@@ -329,7 +385,12 @@ public class MainActivity extends Activity implements BillingManager.BillingList
     private void startMetronome() {
         try { if (tone == null) tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 45); }
         catch (RuntimeException e) { toast(getString(R.string.audio_loading)); return; }
-        metronome = true; beat = 0; beatAt = SystemClock.uptimeMillis(); main.post(tick); metroButton.setText(getString(R.string.metronome_on,bpm));
+        metronome = true;
+        beat = 0;
+        beatAt = SystemClock.uptimeMillis();
+        main.post(tick);
+        metroButton.setContentDescription(getString(R.string.metronome_on, bpm));
+        metroButton.setChecked(true);
     }
     private final Runnable tick = new Runnable() {
         @Override public void run() {
@@ -338,7 +399,14 @@ public class MainActivity extends Activity implements BillingManager.BillingList
             beatAt += 60000 / bpm; if (beatAt < SystemClock.uptimeMillis()) beatAt = SystemClock.uptimeMillis(); main.postAtTime(this,beatAt);
         }
     };
-    private void stopMetronome() { metronome = false; main.removeCallbacks(tick); if (tone != null) tone.stopTone(); metroButton.setText(R.string.metronome); }
+
+    private void stopMetronome() {
+        metronome = false;
+        main.removeCallbacks(tick);
+        if (tone != null) tone.stopTone();
+        metroButton.setContentDescription(getString(R.string.metronome));
+        metroButton.setChecked(false);
+    }
     private void initConsent() {
         consent = UserMessagingPlatform.getConsentInformation(this);
         consent.requestConsentInfoUpdate(this,new ConsentRequestParameters.Builder().build(),

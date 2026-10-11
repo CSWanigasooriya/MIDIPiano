@@ -12,8 +12,8 @@
     <!-- Secondary colors (Warm Violet) -->
     <color name="md_theme_secondary">#5C5D72</color>
     <color name="md_theme_onSecondary">#FFFFFF</color>
-    <color name="md_theme_secondaryContainer">#E1E0F9</color>
-    <color name="md_theme_onSecondaryContainer">#191A2C</color>
+    <color name="md_theme_secondaryContainer">#DCE6E1</color>
+    <color name="md_theme_onSecondaryContainer">#17241E</color>
 
     <!-- Tertiary colors (Soft Teal) -->
     <color name="md_theme_tertiary">#78536B</color>
@@ -28,13 +28,13 @@
     <color name="md_theme_onErrorContainer">#410002</color>
 
     <!-- Background colors -->
-    <color name="md_theme_background">#FEFBFF</color>
+    <color name="md_theme_background">#F6F8F5</color>
     <color name="md_theme_onBackground">#1B1B1F</color>
 
     <!-- Surface colors -->
-    <color name="md_theme_surface">#FEFBFF</color>
+    <color name="md_theme_surface">#F6F8F5</color>
     <color name="md_theme_onSurface">#1B1B1F</color>
-    <color name="md_theme_surfaceVariant">#E3E1EC</color>
+    <color name="md_theme_surfaceVariant">#DCE3DE</color>
     <color name="md_theme_onSurfaceVariant">#46464F</color>
 
     <!-- Outline colors -->

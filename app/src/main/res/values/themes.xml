@@ -1,5 +1,5 @@
 <resources>
-    <!-- Base application theme (Material 3 - Dynamic Color). -->
+    <!-- Shared theme; palette resources adapt to the selected appearance. -->
     <style name="Theme.MIDIPiano" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Material 3 Expressive Color Tokens (Light Mode) -->
         <item name="colorPrimary">@color/md_theme_primary</item>
@@ -47,20 +47,37 @@
         <!-- Bottom sheet styling - Material 3 -->
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.MIDIPiano.BottomSheet</item>
 
+        <!-- Dialog styling - Material 3 -->
+        <item name="alertDialogTheme">@style/ThemeOverlay.MIDIPiano.MaterialAlertDialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.MIDIPiano.MaterialAlertDialog
+        </item>
+
         <!-- Slider styling -->
+        <item name="materialButtonStyle">@style/Widget.MIDIPiano.Button</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="sliderStyle">@style/Widget.MIDIPiano.Slider</item>
+    </style>
+
+    <style name="ThemeOverlay.MIDIPiano.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="materialButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog
+        </item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog
+        </item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Material3.Button.TextButton.Dialog
+        </item>
     </style>
 
     <style name="ThemeOverlay.MIDIPiano.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.MIDIPiano.BottomSheet</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:windowSoftInputMode">adjustResize</item>
-        <item name="colorSurface">@color/md_theme_surfaceContainerLow</item>
+        <item name="colorSurface">?attr/colorSurfaceContainerLow</item>
     </style>
 
     <style name="Widget.MIDIPiano.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
         <item name="shapeAppearance">@style/ShapeAppearance.MIDIPiano.BottomSheet</item>
-        <item name="backgroundTint">@color/md_theme_surfaceContainerLow</item>
+        <item name="backgroundTint">?attr/colorSurfaceContainerLow</item>
     </style>
 
     <style name="ShapeAppearance.MIDIPiano.BottomSheet" parent="ShapeAppearance.Material3.Corner.ExtraLarge">

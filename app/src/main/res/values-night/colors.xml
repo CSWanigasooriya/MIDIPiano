@@ -49,7 +49,7 @@
     <color name="md_theme_surfaceContainerHighest">#353438</color>
 
     <!-- Transparent variants for effects -->
-    <color name="md_theme_primary_transparent">#33BAC3FF</color>
+    <color name="md_theme_primary_transparent">#3364D8C0</color>
 
     <!-- Piano key colors - Dark Theme optimized -->
 </resources>

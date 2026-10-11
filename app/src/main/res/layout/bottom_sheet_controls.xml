@@ -20,22 +20,16 @@
         <com.google.android.material.bottomsheet.BottomSheetDragHandleView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/spacing_sm" />
+            android:layout_marginBottom="4dp" />
 
-        <!-- Sheet Title -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/controls"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall"
-            android:textColor="?attr/colorOnSurface" />
 
-        <com.google.android.material.divider.MaterialDivider
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/appearanceButton"
+            style="@style/Widget.MIDIPiano.Button.Secondary"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_lg"
-            app:dividerColor="?attr/colorOutlineVariant" />
-
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/appearance" />
 
         <!-- Transpose Section -->
         <TextView
@@ -54,7 +48,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/transposeDown"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/Widget.MIDIPiano.Button.Secondary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -66,7 +60,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/transposeUp"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/Widget.MIDIPiano.Button.Secondary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_md"
