@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -26,7 +26,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
       - name: Install Android SDK packages
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
       - name: Verify vendored audio library
         run: echo 'ed8a8f3744cffc2937ad1ab88323f8fceb40f2cfbff9f0e158390e8060604551  MidiDriver-1.29/MidiDriver-1.29.aar' | sha256sum --check
       - name: Build, test, and lint
@@ -50,7 +50,7 @@ jobs:
   release-internal:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.PLAY_AUTO_RELEASE == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: play-internal
     env:
@@ -79,7 +79,7 @@ jobs:
           echo "PLAY_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
       - name: Build signed bundle
         run: |
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
           chmod +x gradlew
           ./gradlew :app:bundleRelease --no-daemon --max-workers=2 --no-configuration-cache
       - name: Upload to Play internal testing
