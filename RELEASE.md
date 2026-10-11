@@ -1,5 +1,13 @@
 # 2.0 / version code 13
 
+## Local verification — 2026-10-11
+
+Passed `assembleDebug`, `testDebugUnitTest` (3 tests), `lintDebug`, `assembleDebugAndroidTest`, and `bundleRelease` using JDK 17 / Gradle 9.6.0. Debug lint has 8 SDK/dependency-update warnings and no errors; release vital lint has no errors or warnings. Actionlint accepted the GitHub workflow, and SDK zipalign passed the debug APK's 16KB packaging check.
+
+Artifacts: `app/build/outputs/apk/debug/app-debug.apk` and `app/build/outputs/bundle/release/app-release.aab`. The local release bundle is unsigned; configure the existing upload key before Play upload. Three headless emulator boot attempts stayed offline, so instrumentation was compiled but not executed. Physical-device, 16KB-device, and Play purchase/restore checks remain outstanding.
+
+See [CI_RELEASE.md](CI_RELEASE.md) for opt-in automatic Play internal releases after pushes to master.
+
 ## Product direction
 
 Turn the piano into a small creation and practice tool. Recording, replay, MIDI export, and a metronome give free users reasons to return. Pro remains a lifetime upgrade for additional sounds, adjustable note volume, and an ad-free workspace. No price or product-ID change is included. Conversion improvement is a hypothesis to evaluate after release, not an established outcome.

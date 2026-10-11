@@ -52,10 +52,4 @@
     <color name="md_theme_primary_transparent">#33BAC3FF</color>
 
     <!-- Piano key colors - Dark Theme optimized -->
-    <color name="key_white_normal">#F0F0F5</color>
-    <color name="key_white_pressed">#C0C0D0</color>
-    <color name="key_white_stroke">#8080A0</color>
-    <color name="key_black_normal">#1A1A22</color>
-    <color name="key_black_pressed">#2E2E3A</color>
-    <color name="key_black_stroke">#3A3A48</color>
 </resources>

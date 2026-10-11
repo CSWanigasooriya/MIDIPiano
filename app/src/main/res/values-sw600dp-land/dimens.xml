@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Piano key sizing (tablet landscape - maximum playability) -->
-    <dimen name="white_key_width">80dp</dimen>
-    <dimen name="black_key_width">56dp</dimen>
-    <dimen name="black_key_height">200dp</dimen>
-    <dimen name="black_key_offset">-28dp</dimen>
 
     <!-- Compact toolbar in landscape -->
 
     <!-- Ad sizing -->
-    <dimen name="ad_min_height">90dp</dimen>
 
     <!-- Bottom sheet -->
     <dimen name="sheet_horizontal_padding">48dp</dimen>
